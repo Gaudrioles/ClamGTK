@@ -4,13 +4,13 @@
 #define WINDOW_WIDTH    700
 #define WINDOW_HEIGHT   400
 
-#define IMAGE_CLAMAV    "/usr/share/ClamGTK/DATA/clamav.png"
-#define IMAGE_BT_SEARCH "/usr/share/ClamGTK/DATA/search.png"
-#define IMAGE_BT_UPDATE "/usr/share/ClamGTK/DATA/update.png"
-#define IMAGE_BT_FILE   "/usr/share/ClamGTK/DATA/file.png"
-#define IMAGE_BT_FOLDER "/usr/share/ClamGTK/DATA/folder.png"
+#define IMAGE_CLAMAV    "/usr/share/ClamGTK/clamav.png"
+#define IMAGE_BT_SEARCH "/usr/share/ClamGTK/search.png"
+#define IMAGE_BT_UPDATE "/usr/share/ClamGTK/update.png"
+#define IMAGE_BT_FILE   "/usr/share/ClamGTK/file.png"
+#define IMAGE_BT_FOLDER "/usr/share/ClamGTK/folder.png"
 #define IMAGE_ICON      "clamav"
-#define CLAMGTK_SCRIPT  "/usr/share/ClamGTK/DATA/clam_gtk_update_script.sh"
+#define CLAMGTK_SCRIPT  "/usr/share/ClamGTK/clam_gtk_update_script.sh"
 
 /*
 #define IMAGE_CLAMAV    "DATA/clamav.png"

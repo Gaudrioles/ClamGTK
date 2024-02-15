@@ -211,7 +211,7 @@ void* worker_scan(void* user_data)
 
     clear_textView(st->textview);
     
-    buffer = g_strdup_printf("clamscan \"%s\"", st->scanPath);
+    buffer = g_strdup_printf("clamscan -r \"%s\"", st->scanPath);
     if (buffer == NULL)
     {
         add_text_textview("Allocation mémoire Impossible !!", user_data);

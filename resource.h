@@ -1,8 +1,8 @@
 #ifndef RESOURCE_H_INCLUDED
 #define RESOURCE_H_INCLUDED
 
-#define APP_VERSION "1.0"
-#define APP_NAME ""
+#define APP_VERSION "7.1"
+#define APP_NAME "ClamGTK"
 #define INNOSETUP "FALSE"
 
 #endif /* !RESOURCE_H_INCLUDED */

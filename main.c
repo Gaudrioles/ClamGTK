@@ -14,12 +14,15 @@ int main (int argc, char* argv[])
 
     if(argc > 1)
     {
-        if(strcmp(argv[1], "-scan") == 0)
+        if(argc > 2)
         {
-            st.scanPath = g_strdup(argv[2]);
-            argc = 1;
-            cmd = TRUE;
+            if(strcmp(argv[1], "-scan") == 0)
+            {
+                st.scanPath = g_strdup(argv[2]);
+                cmd = TRUE;
+            }
         }
+        argc = 1;
     }
     
     st.application = gtk_application_new("ClamGTK.app", G_APPLICATION_FLAGS_NONE); /*G_APPLICATION_FLAGS_NONE*/ /*G_APPLICATION_DEFAULT_FLAGS*/
