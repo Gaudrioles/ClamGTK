@@ -1,0 +1,23 @@
+pkgname=ClamGTK
+pkgver=1.0
+pkgrel=1
+pkgdesc="Interface Graphique en GTK pour ClamAV"
+arch=('any')
+url="https://github.com/Gaudrioles"
+license=('LGPL')
+makedepends=("cmake")
+depends=("cmake")
+
+version=$(grep -oP 'APP_VERSION\s*"\K[^"]+' ../resource.h)
+pkgver=$version
+
+package() {
+	# Install Bin
+	install -D -m755 "../ClamGTK" "${pkgdir}/usr/bin/ClamGTK"
+	install -D -m755 "../../DATA/clamav.png" "${pkgdir}/usr/share/ClamGTK/clamav.png"
+	install -D -m755 "../../DATA/search.png" "${pkgdir}/usr/share/ClamGTK/search.png"
+	install -D -m755 "../../DATA/update.png" "${pkgdir}/usr/share/ClamGTK/update.png"
+	install -D -m755 "../../DATA/file.png" "${pkgdir}/usr/share/ClamGTK/file.png"
+	install -D -m755 "../../DATA/folder.png" "${pkgdir}/usr/share/ClamGTK/folder.png"
+	install -D -m755 "../../DATA/clam_gtk_update_script.sh" "${pkgdir}/usr/share/ClamGTK/clam_gtk_update_script.sh"
+}
