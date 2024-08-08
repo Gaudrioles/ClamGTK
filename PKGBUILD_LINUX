@@ -19,5 +19,4 @@ package() {
 	install -D -m755 "../../DATA/update.png" "${pkgdir}/usr/share/ClamGTK/update.png"
 	install -D -m755 "../../DATA/file.png" "${pkgdir}/usr/share/ClamGTK/file.png"
 	install -D -m755 "../../DATA/folder.png" "${pkgdir}/usr/share/ClamGTK/folder.png"
-	install -D -m755 "../../DATA/clam_gtk_update_script.sh" "${pkgdir}/usr/share/ClamGTK/clam_gtk_update_script.sh"
 }

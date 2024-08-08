@@ -13,7 +13,12 @@ IF(UNIX)
     # DEB #
     SET(CPACK_GENERATOR "DEB")
     SET(CPACK_PACKAGE_NAME ${PROJECT_NAME})
-    SET(CPACK_PACKAGE_VERSION "1.0")
+    cmake_minimum_required(VERSION 3.5)
+
+
+    FILE(READ "resource.h" ver)
+    STRING(REGEX MATCH "APP_VERSION \"([0-9]+\\.[0-9]+)\"" _ ${ver})
+    SET(CPACK_PACKAGE_VERSION ${CMAKE_MATCH_1})
     SET(CPACK_PACKAGE_CONTACT "bubi.gaudrioles@hotmail.com")
     SET(CPACK_DEBIAN_PACKAGE_DESCRIPTION "Interface Graphique pour ClamAV")
     SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Bubi GAUDRIOLES")
