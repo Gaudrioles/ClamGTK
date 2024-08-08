@@ -25,5 +25,6 @@ gchar* selection_repertoire(st_widgets* st);
 gchar* selection_fichier(st_widgets* st);
 
 char* textFormated(const char* text);
+char* getVirusName(const char* buffer);
 
 #endif /* !GTK_FONCTION_H_INCLUDED */

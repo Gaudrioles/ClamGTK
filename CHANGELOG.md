@@ -9,3 +9,5 @@ BUILD 1.0
 -*- Add -*- premiere version realisee;
 BUILD 1.1
 -*- Add -*- Ajout PKGBUILD pour Arch Linux;
+BUILD 1.2
+-*- Add -*- Ajour fonction coloration du texte;

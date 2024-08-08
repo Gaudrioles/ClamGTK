@@ -24,7 +24,7 @@ int main (int argc, char* argv[])
         }
         argc = 1;
     }
-    
+        
     st.application = gtk_application_new("ClamGTK.app", G_APPLICATION_DEFAULT_FLAGS); /*G_APPLICATION_FLAGS_NONE*/ /*G_APPLICATION_DEFAULT_FLAGS*/
     
     if(cmd == TRUE)

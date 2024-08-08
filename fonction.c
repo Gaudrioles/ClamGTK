@@ -3,44 +3,132 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <ctype.h>
 
 #include "main.h"
 #include "fonction.h"
 
 struct DispatchData {
-    GtkTextBuffer *buffer;
-    char *output_str;
+    GtkTextBuffer* buffer;
+    gchar* virus_name;
+    char* output_str;
 };
 
-static gboolean display_status_textbuffer(struct DispatchData *data)
+void strcut(char* source, const char* supp) 
 {
+    if (!*supp || !strstr(source, supp))
+    {
+        return;
+    }    
+
+    size_t len_supp = strlen(supp);
+    if (len_supp < 2)
+    {
+        return;
+    }
+
+    char caractereA = supp[0];
+    char caractereB = supp[1];
+    size_t len_source = strlen(source);
+
+    for (size_t i = 0; i < len_source - 1; i++) {
+        if (source[i] == caractereA && source[i + 1] == caractereB)
+        {
+            source[i] = '\0';
+            return;
+        }
+    }
+}
+
+
+char* getVirusName(const char* buffer)
+{
+    if (!buffer)
+    {
+        return NULL;
+    }
+
+    const char* result = strstr(buffer, ": ");
+    if (!result)
+    {
+        return NULL;
+    }
+
+    result += 2; // Skip past ": "
+
+    // Calculate the length of the virus name
+    const char* end = strchr(result, ' ');
+    if (!end)
+    {
+        return NULL;
+    }
+
+    size_t name_len = end - result;
+
+    char* virus_name = (char*)malloc(name_len + 1);
+    if (!virus_name)
+    {
+        fprintf(stderr, "Memory allocation error\n");
+        return NULL;
+    }
+
+    strncpy(virus_name, result, name_len);
+    virus_name[name_len] = '\0';
+
+    return virus_name;
+}
+
+static gboolean display_status_textbuffer(struct DispatchData* data)
+{
+    GtkTextIter start, end;
     gchar* output = NULL;
-    GtkTextIter start;
-    GtkTextIter end;
+    char* buffer = NULL;
 
     gtk_text_buffer_get_bounds(data->buffer, &start, &end);
-    
-    if(gtk_text_iter_equal(&start, &end) != TRUE)
+
+    if (!gtk_text_iter_equal(&start, &end))
     {
         gchar* tampon = gtk_text_buffer_get_text(data->buffer, &start, &end, TRUE);
-        if(tampon != NULL)
+        if (tampon)
         {
-            output = g_strdup_printf("%s%s", tampon, data->output_str);
-            if(output == NULL)
-            {
-                g_free(tampon);
-                g_free(data);
-                return G_SOURCE_REMOVE;
-            }
-        }
+            char* result_OK = strstr(data->output_str, ": OK");/*File: OK*/
+            char* result_KO = strstr(data->output_str, "FOUND");/*File: Win.Test.EICAR_HDB-1 FOUND*/
 
-        gtk_text_buffer_set_text(data->buffer, output, strlen(output));
-        g_free(tampon);
-        g_free(output);
+            if (result_OK)
+            {
+                strcut(data->output_str, ": ");
+                output = g_strdup_printf("%s : <span color=\"green\">%s\n</span>", data->output_str, "CLEAN");
+            } else if (result_KO)
+            {
+                buffer = getVirusName(data->output_str);
+                if (!buffer)
+                {
+                    exit(EXIT_FAILURE);
+                }
+
+                strcut(data->output_str, ": ");
+                output = g_strdup_printf("%s : <span color=\"orange\">WARNING</span> <span color=\"red\">%s\n</span>", data->output_str, buffer);
+                free(buffer);
+            } else
+            {
+                output = g_strdup_printf("<span color=\"white\">%s</span>", data->output_str);
+            }
+
+            if (!output)
+            {
+                exit(EXIT_FAILURE);
+            }
+
+            gtk_text_buffer_insert_markup(data->buffer, &end, output, -1);
+            g_free(tampon);
+            g_free(output);
+            g_free(data->output_str);
+        }
     }
     else
     {
-        gtk_text_buffer_set_text(data->buffer, data->output_str, strlen(data->output_str));
+        gtk_text_buffer_set_text(data->buffer, data->output_str, -1);
+        g_free(data->output_str);
     }
 
     g_free(data);
@@ -49,28 +137,26 @@ static gboolean display_status_textbuffer(struct DispatchData *data)
 
 char* textFormated(const char* text)
 {
-    int compteur = 28;
-    if(text == NULL)
+    if (!text)
     {
         return NULL;
     }
 
-    char* buffer = NULL;
-
     size_t len = strlen(text);
 
-    buffer = malloc(len * sizeof(char));
-    if(buffer == NULL)
+    if (len <= 28) 
+    {
+        return NULL;
+    }
+
+    char* buffer = malloc((len - 28 + 1) * sizeof(char));
+    if (!buffer)
     {
         fprintf(stderr, "Erreur allocation memoire\n");
         return NULL;
     }
 
-    for(int i = 0; i < (int)len; i++)
-    {
-        buffer[i] = text[compteur];
-        compteur++;
-    }
+    strcpy(buffer, text + 28);
 
     return buffer;
 }
@@ -158,9 +244,11 @@ GtkWidget* gtk_label_new_with_markup(const char* text, int color)
 void add_text_textview(const gchar* text, gpointer user_data)
 {
     st_widgets* st = (st_widgets*) user_data;
-    struct DispatchData *data = g_new0(struct DispatchData, 1);
+    struct DispatchData* data = g_new0(struct DispatchData, 1);
+    
     data->output_str = g_strdup_printf("%s\n", text);
     data->buffer = st->TextBuffer;
+    
     gdk_threads_add_idle((GSourceFunc)display_status_textbuffer, data);
 }
 
@@ -212,7 +300,7 @@ void* worker_scan(void* user_data)
     clear_textView(st->textview);
     
     buffer = g_strdup_printf("clamscan -r \"%s\"", st->scanPath);
-    if (buffer == NULL)
+    if (!buffer)
     {
         add_text_textview("Allocation mémoire Impossible !!", user_data);
         return NULL;
@@ -220,7 +308,7 @@ void* worker_scan(void* user_data)
 
     if (st->scanPath != NULL)
     {
-        add_text_textview(st->scanPath, user_data);        
+        add_text_textview(MSG_SCAN, user_data);
     }
 
     g_free(st->scanPath);
@@ -257,10 +345,11 @@ void* worker_update(void* user_data)
     FILE* fichier = NULL;
     gchar* buffer = NULL;
     char output[1024];
+    int compteur = 0;
 
     clear_textView(st->textview);
     
-    buffer = g_strdup_printf("pkexec bash %s", CLAMGTK_SCRIPT);
+    buffer = g_strdup_printf(CMD_FRESHCLAN);
     if (buffer == NULL)
     {
         add_text_textview("Allocation mémoire Impossible !!", user_data);
@@ -270,7 +359,7 @@ void* worker_update(void* user_data)
     fichier = popen(buffer, "r");
     if (fichier == NULL)
     {
-        add_text_textview("ClamScan Erreur", user_data);
+        add_text_textview("freshclam Erreur", user_data);
         g_free(buffer);
         return NULL;
     }
@@ -279,16 +368,27 @@ void* worker_update(void* user_data)
 
     while (fgets(output, sizeof(output), fichier) != NULL)
     {
+        
+        char* zbuffer = NULL;
+        
+        if(compteur == 0)
+        {
+            zbuffer = strdup(MSG_UPDATE);
+        }
+        else
+        {
+            zbuffer = textFormated(output);            
+        }
 
-        char* buffer = textFormated(output);
-        if(buffer == NULL)
+        if(!zbuffer)
         {
             break;
-        }
-        
-        add_text_textview(buffer, user_data);
+        } 
 
-        free(buffer);
+        add_text_textview(zbuffer, user_data);
+        compteur++;
+
+        free(zbuffer);
     }
 
     pclose(fichier);
