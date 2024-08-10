@@ -8,13 +8,14 @@
 #include "main.h"
 #include "fonction.h"
 
-struct DispatchData {
-    GtkTextBuffer* buffer;
-    gchar* virus_name;
-    char* output_str;
+struct DispatchData
+{
+    GtkTextBuffer *buffer;
+    gchar *virus_name;
+    char *output_str;
 };
 
-void SetSensitiveButton(GtkWidget* widget)
+void SetSensitiveButton(GtkWidget *widget)
 {
     if(gtk_widget_get_sensitive(widget) == TRUE)
     {
@@ -26,7 +27,7 @@ void SetSensitiveButton(GtkWidget* widget)
     }
 }
 
-void ActivationButton(st_widgets* st)
+void ActivationButton(st_widgets *st)
 {
     switch(st->cmd_satus)
     {
@@ -46,7 +47,7 @@ void ActivationButton(st_widgets* st)
     return;
 }
 
-void strcut(char* source, const char* supp) 
+void strcut(char *source, const char *supp) 
 {
     if (!*supp || !strstr(source, supp))
     {
@@ -73,14 +74,14 @@ void strcut(char* source, const char* supp)
 }
 
 
-char* getVirusName(const char* buffer)
+char *getVirusName(const char *buffer)
 {
     if (!buffer)
     {
         return NULL;
     }
 
-    const char* result = strstr(buffer, ": ");
+    const char *result = strstr(buffer, ": ");
     if (!result)
     {
         return NULL;
@@ -89,7 +90,7 @@ char* getVirusName(const char* buffer)
     result += 2; // Skip past ": "
 
     // Calculate the length of the virus name
-    const char* end = strchr(result, ' ');
+    const char *end = strchr(result, ' ');
     if (!end)
     {
         return NULL;
@@ -97,7 +98,7 @@ char* getVirusName(const char* buffer)
 
     size_t name_len = end - result;
 
-    char* virus_name = (char*)malloc(name_len + 1);
+    char *virus_name = (char*)malloc(name_len + 1);
     if (!virus_name)
     {
         fprintf(stderr, "Memory allocation error\n");
@@ -110,21 +111,21 @@ char* getVirusName(const char* buffer)
     return virus_name;
 }
 
-static gboolean display_status_textbuffer(struct DispatchData* data)
+static gboolean display_status_textbuffer(struct DispatchData *data)
 {
     GtkTextIter start, end;
-    gchar* output = NULL;
-    char* buffer = NULL;
+    gchar *output = NULL;
+    char *buffer = NULL;
 
     gtk_text_buffer_get_bounds(data->buffer, &start, &end);
 
     if (!gtk_text_iter_equal(&start, &end))
     {
-        gchar* tampon = gtk_text_buffer_get_text(data->buffer, &start, &end, TRUE);
+        gchar *tampon = gtk_text_buffer_get_text(data->buffer, &start, &end, TRUE);
         if (tampon)
         {
-            char* result_OK = strstr(data->output_str, ": OK");/*File: OK*/
-            char* result_KO = strstr(data->output_str, "FOUND");/*File: Win.Test.EICAR_HDB-1 FOUND*/
+            char *result_OK = strstr(data->output_str, ": OK");/*File: OK*/
+            char *result_KO = strstr(data->output_str, "FOUND");/*File: Win.Test.EICAR_HDB-1 FOUND*/
 
             if (result_OK)
             {
@@ -167,7 +168,7 @@ static gboolean display_status_textbuffer(struct DispatchData* data)
     return G_SOURCE_REMOVE;
 }
 
-char* textFormated(const char* text)
+char *textFormated(const char *text)
 {
     if (!text)
     {
@@ -181,7 +182,7 @@ char* textFormated(const char* text)
         return NULL;
     }
 
-    char* buffer = malloc((len - 28 + 1) * sizeof(char));
+    char *buffer = malloc((len - 28 + 1) * sizeof(char));
     if (!buffer)
     {
         fprintf(stderr, "Erreur allocation memoire\n");
@@ -193,40 +194,34 @@ char* textFormated(const char* text)
     return buffer;
 }
 
-gboolean pulse_progress_bar(GtkWidget* progressBar)
+gboolean pulse_progress_bar(GtkWidget *progressBar)
 {
     gtk_progress_bar_pulse(GTK_PROGRESS_BAR(progressBar));
     return G_SOURCE_CONTINUE;
 }
 
-void cleanup_progress_bar(GtkWidget* progressBar)
+void cleanup_progress_bar(GtkWidget *progressBar)
 {
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar), 0.0);
     return;
 }
 
-void notebook_set_page_default(GtkWidget* bouton, gpointer user_data)
+void notebook_set_page_default(GtkWidget *bouton, st_widgets *st)
 {
-    UNUSED(bouton);
-    st_widgets* st = (st_widgets*) user_data;
-    
     gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 0);
 }
 
-void notebook_set_page_analyser(GtkWidget* bouton, gpointer user_data)
+void notebook_set_page_analyser(GtkWidget *bouton, st_widgets *st)
 {
-    UNUSED(bouton);
-    st_widgets* st = (st_widgets*) user_data;
-    
     gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 1);
 }
 
-void clear_textView(GtkWidget* text_view)
+void clear_textView(GtkWidget *text_view)
 {
     GtkTextIter start;
     GtkTextIter end;
 
-    GtkTextBuffer* buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(text_view));
+    GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(text_view));
     
     gtk_text_buffer_get_start_iter(buffer, &start);
     gtk_text_buffer_get_end_iter(buffer, &end);
@@ -239,10 +234,10 @@ void clear_textView(GtkWidget* text_view)
     return;
 }
 
-GtkWidget* gtk_label_new_with_markup(const char* text, int color)
+GtkWidget *gtk_label_new_with_markup(const char *text, int color)
 {
-    GtkWidget* label   = NULL;
-    gchar* buffer = NULL;
+    GtkWidget *label   = NULL;
+    gchar *buffer = NULL;
 
     switch (color)
     {
@@ -267,10 +262,9 @@ GtkWidget* gtk_label_new_with_markup(const char* text, int color)
     return label;
 }
 
-void add_text_textview(const gchar* text, gpointer user_data)
+void add_text_textview(const gchar *text, st_widgets *st)
 {
-    st_widgets* st = (st_widgets*) user_data;
-    struct DispatchData* data = g_new0(struct DispatchData, 1);
+    struct DispatchData *data = g_new0(struct DispatchData, 1);
     
     data->output_str = g_strdup_printf("%s\n", text);
     data->buffer = st->textBuffer;
@@ -278,23 +272,23 @@ void add_text_textview(const gchar* text, gpointer user_data)
     gdk_threads_add_idle((GSourceFunc)display_status_textbuffer, data);
 }
 
-void move_down_in_box(GtkWidget* box, int nb)
+void move_down_in_box(GtkWidget *box, int nb)
 {
     for(int compteur = 0; compteur < nb; compteur++)
     {
-        GtkWidget* label    = NULL;
+        GtkWidget *label    = NULL;
 
         label = gtk_label_new("");
         gtk_box_pack_start(GTK_BOX(box), label, FALSE, FALSE, 0);
     }
 }
 
-void space_in_box(GtkWidget* box, int nb)
+void space_in_box(GtkWidget *box, int nb)
 {
     for(int compteur = 0; compteur < nb; compteur++)
     {
-        GtkWidget* start  = NULL;
-        GtkWidget* end  = NULL;
+        GtkWidget *start  = NULL;
+        GtkWidget *end  = NULL;
 
         start = gtk_label_new("");
         end = gtk_label_new("");
@@ -303,10 +297,10 @@ void space_in_box(GtkWidget* box, int nb)
     }
 }
 
-GtkWidget* gtk_button_new_with_image(const char* imageName)
+GtkWidget *gtk_button_new_with_image(const char *imageName)
 {
-    GtkWidget* bouton   = NULL;
-    GtkWidget* image    = NULL;
+    GtkWidget *bouton   = NULL;
+    GtkWidget *image    = NULL;
 
     image = gtk_image_new_from_file(imageName);
 
@@ -316,11 +310,11 @@ GtkWidget* gtk_button_new_with_image(const char* imageName)
     return bouton;
 }
 
-void* worker_scan(void* user_data)
+void *worker_scan(void *user_data)
 {
-    st_widgets* st = (st_widgets*)user_data;
-    FILE* fichier = NULL;
-    gchar* buffer = NULL;
+    st_widgets *st = (st_widgets*)user_data;
+    FILE *fichier = NULL;
+    gchar *buffer = NULL;
     char output[1024];
 
     clear_textView(st->textview);
@@ -367,11 +361,11 @@ void* worker_scan(void* user_data)
     return NULL;
 }
 
-void* worker_update(void* user_data)
+void *worker_update(void *user_data)
 {
-    st_widgets* st = (st_widgets*)user_data;
-    FILE* fichier = NULL;
-    gchar* buffer = NULL;
+    st_widgets *st = (st_widgets*)user_data;
+    FILE *fichier = NULL;
+    gchar *buffer = NULL;
     char output[1024];
     int compteur = 0;
 
@@ -398,7 +392,7 @@ void* worker_update(void* user_data)
     while (fgets(output, sizeof(output), fichier) != NULL)
     {
         
-        char* zbuffer = NULL;
+        char *zbuffer = NULL;
         
         if(compteur == 0)
         {
@@ -429,20 +423,20 @@ void* worker_update(void* user_data)
     return NULL;
 }
 
-gchar* selection_fichier(st_widgets* st)
+gchar *selection_fichier(st_widgets *st)
 {
-    GtkFileChooserNative* native;
+    GtkFileChooserNative *native;
     GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
     gint res;
 
-    char* buffer = NULL;
+    char *buffer = NULL;
 
     native = gtk_file_chooser_native_new("Selection du fichier", GTK_WINDOW(st->window), action, "_Analyser", "_Retour");
 
     res = gtk_native_dialog_run(GTK_NATIVE_DIALOG(native));
     if (res == GTK_RESPONSE_ACCEPT)
     {
-        GSList* liste = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(native));
+        GSList *liste = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(native));
 
         if (g_list_length((GList*)liste) > 0)
         {
@@ -464,20 +458,20 @@ gchar* selection_fichier(st_widgets* st)
     return buffer;
 }
 
-gchar* selection_repertoire(st_widgets* st)
+gchar *selection_repertoire(st_widgets *st)
 {
-    GtkFileChooserNative* native;
+    GtkFileChooserNative *native;
     GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
     gint res;
 
-    char* buffer = NULL;
+    char *buffer = NULL;
 
     native = gtk_file_chooser_native_new("Selection du Repertoire", GTK_WINDOW(st->window), action, "_Analyser", "_Retour");
 
     res = gtk_native_dialog_run(GTK_NATIVE_DIALOG(native));
     if (res == GTK_RESPONSE_ACCEPT)
     {
-        GSList* liste = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(native));
+        GSList *liste = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(native));
 
         if (g_list_length((GList*)liste) > 0)
         {
@@ -498,13 +492,11 @@ gchar* selection_repertoire(st_widgets* st)
 
     return buffer;
 } 
-void selection_file_function(GtkWidget* button, gpointer user_data)
+void selection_file_function(GtkWidget *bouton, st_widgets *st)
 {
-    UNUSED(button);
-    st_widgets* st = (st_widgets*) user_data;
     pthread_t thread;
 
-    st->scanPath = selection_fichier(user_data);
+    st->scanPath = selection_fichier(st);
     if(st->scanPath == NULL)
     {
         return;
@@ -513,18 +505,16 @@ void selection_file_function(GtkWidget* button, gpointer user_data)
     gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
 
     st->threadID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);    
-    pthread_create(&thread, NULL, worker_scan, (void*) user_data);
+    pthread_create(&thread, NULL, worker_scan, (void*) st);
 
     return;
 }
 
-void selection_folder_function(GtkWidget* button, gpointer user_data)
+void selection_folder_function(GtkWidget *button, st_widgets *st)
 {
-    UNUSED(button);
-    st_widgets* st = (st_widgets*) user_data;
     pthread_t thread;
 
-    st->scanPath = selection_repertoire(user_data);
+    st->scanPath = selection_repertoire(st);
     if(st->scanPath == NULL)
     {
         return;
@@ -533,34 +523,31 @@ void selection_folder_function(GtkWidget* button, gpointer user_data)
     gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
     
     st->threadID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);
-    pthread_create(&thread, NULL, worker_scan, (void*) user_data);
+    pthread_create(&thread, NULL, worker_scan, (void*) st);
 
     return;
 }
 
-void update_function(GtkWidget* button, gpointer user_data)
+void update_function(GtkWidget *bouton,st_widgets *st)
 {
-    UNUSED(button);
-    st_widgets* st = (st_widgets*) user_data;
     pthread_t thread;
 
     gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
         
     st->threadID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);
-    pthread_create(&thread, NULL, worker_update, (void*) user_data);
+    pthread_create(&thread, NULL, worker_update, (void*) st);
 
     return;
 }
 
-void scan_cmd(gpointer user_data)
+void scan_cmd(st_widgets *st)
 {
-    st_widgets* st = (st_widgets*) user_data;
     pthread_t thread;
     
     gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
     
     st->threadID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);
-    pthread_create(&thread, NULL, worker_scan, (void*) user_data);
+    pthread_create(&thread, NULL, worker_scan, (void*) st);
     
     return;
 }

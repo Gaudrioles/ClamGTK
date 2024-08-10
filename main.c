@@ -6,11 +6,16 @@
 #include "gui.h"
 #include "fonction.h"
 
-int main (int argc, char* argv[])
+int main (int argc, char *argv[])
 {
     int status;
-    st_widgets st;
+    st_widgets *st =  NULL;
     gboolean cmd = FALSE;
+
+    if(!(st = g_malloc(sizeof(st_widgets))))
+    {
+        return -1;
+    }
 
     if(argc > 1)
     {
@@ -18,27 +23,28 @@ int main (int argc, char* argv[])
         {
             if(strcmp(argv[1], "-scan") == 0)
             {
-                st.scanPath = g_strdup(argv[2]);
+                st->scanPath = g_strdup(argv[2]);
                 cmd = TRUE;
             }
         }
         argc = 1;
     }
         
-    st.application = gtk_application_new("ClamGTK.app", G_APPLICATION_DEFAULT_FLAGS); /*G_APPLICATION_FLAGS_NONE*/ /*G_APPLICATION_DEFAULT_FLAGS*/
+    st->application = gtk_application_new("ClamGTK.app", G_APPLICATION_DEFAULT_FLAGS); /*G_APPLICATION_FLAGS_NONE*/ /*G_APPLICATION_DEFAULT_FLAGS*/
     
     if(cmd == TRUE)
     {
-        g_signal_connect(st.application, "activate", G_CALLBACK(activateCMD), &st);
+        g_signal_connect(st->application, "activate", G_CALLBACK(activateCMD), st);
     }
     else
     {
-        g_signal_connect(st.application, "activate", G_CALLBACK(activate), &st);
+        g_signal_connect(st->application, "activate", G_CALLBACK(activate), st);
     }
     
-    status = g_application_run(G_APPLICATION(st.application), argc, argv);
+    status = g_application_run(G_APPLICATION(st->application), argc, argv);
     
-    g_object_unref(st.application);
+    g_object_unref(st->application);
+    g_free(st);
     
     return status;
 }

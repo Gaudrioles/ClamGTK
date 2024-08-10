@@ -3,21 +3,17 @@
 #include "main.h"
 #include "fonction.h"
 
-void exit_button_clicked(GtkWidget *widget, gpointer user_data)
+void exit_button_clicked(GtkWidget *bouton, st_widgets *st)
 {
-    UNUSED(widget);
-    st_widgets* st = (st_widgets*) user_data;
-    
     g_application_quit(G_APPLICATION(st->application));
     gtk_main_quit();
 }
 
-void activateCMD(GtkApplication* application, gpointer user_data)
+void activateCMD(GtkApplication *application, st_widgets *st)
 {
-    st_widgets* st = (st_widgets*) user_data;
-    GtkWidget* box_main = NULL;
-    GtkWidget* box_scan = NULL;
-    GtkWidget* box_scan_bouton = NULL;
+    GtkWidget *box_main = NULL;
+    GtkWidget *box_scan = NULL;
+    GtkWidget *box_scan_bouton = NULL;
 
     /* Window */
     st->window = gtk_application_window_new(application);
@@ -75,8 +71,8 @@ void activateCMD(GtkApplication* application, gpointer user_data)
 
     /* Signal */
     g_signal_connect(G_OBJECT(st->window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
-    g_signal_connect(G_OBJECT(st->bouton_retour), "clicked", G_CALLBACK(exit_button_clicked), user_data);
-    scan_cmd(user_data);
+    g_signal_connect(G_OBJECT(st->bouton_retour), "clicked", G_CALLBACK(exit_button_clicked), st);
+    scan_cmd(st);
     
     gtk_widget_show_all(st->window);
 
@@ -84,24 +80,23 @@ void activateCMD(GtkApplication* application, gpointer user_data)
 
 }
 
-void activate(GtkApplication* application, gpointer user_data)
+void activate(GtkApplication *application, st_widgets *st)
 {
-    st_widgets* st = (st_widgets*) user_data;
-    GtkWidget* box_main = NULL;
-    GtkWidget* box_analyser = NULL;
-    GtkWidget* box_analyser_file = NULL;
-    GtkWidget* box_analyser_folder = NULL;
-    GtkWidget* box_right_button = NULL;
-    GtkWidget* box_right_h_b_a = NULL;
-    GtkWidget* box_right_h_b_u = NULL;
-    GtkWidget* box_scan = NULL;
-    GtkWidget* box_scan_bouton = NULL;
-    GtkWidget* imageClamav = NULL;
-    GtkWidget* label_analyser = NULL;
-    GtkWidget* label_update = NULL;
-    GtkWidget* separateur = NULL;
-    GtkWidget* label_analyser_file = NULL;
-    GtkWidget* label_analyser_folder = NULL;
+    GtkWidget *box_main = NULL;
+    GtkWidget *box_analyser = NULL;
+    GtkWidget *box_analyser_file = NULL;
+    GtkWidget *box_analyser_folder = NULL;
+    GtkWidget *box_right_button = NULL;
+    GtkWidget *box_right_h_b_a = NULL;
+    GtkWidget *box_right_h_b_u = NULL;
+    GtkWidget *box_scan = NULL;
+    GtkWidget *box_scan_bouton = NULL;
+    GtkWidget *imageClamav = NULL;
+    GtkWidget *label_analyser = NULL;
+    GtkWidget *label_update = NULL;
+    GtkWidget *separateur = NULL;
+    GtkWidget *label_analyser_file = NULL;
+    GtkWidget *label_analyser_folder = NULL;
 
     /* Window */
     st->window = gtk_application_window_new(application);
@@ -215,11 +210,11 @@ void activate(GtkApplication* application, gpointer user_data)
 
     /* Signal */
     g_signal_connect(G_OBJECT(st->window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
-    g_signal_connect(G_OBJECT(st->bouton_retour), "clicked", G_CALLBACK(notebook_set_page_default), user_data);
-    g_signal_connect(G_OBJECT(st->bouton_analyser), "clicked", G_CALLBACK(notebook_set_page_analyser), user_data);
-    g_signal_connect(G_OBJECT(st->bouton_update), "clicked", G_CALLBACK(update_function), user_data);
-    g_signal_connect(G_OBJECT(st->bouton_file), "clicked", G_CALLBACK(selection_file_function), user_data);
-    g_signal_connect(G_OBJECT(st->bouton_folder), "clicked", G_CALLBACK(selection_folder_function), user_data);
+    g_signal_connect(G_OBJECT(st->bouton_retour), "clicked", G_CALLBACK(notebook_set_page_default), st);
+    g_signal_connect(G_OBJECT(st->bouton_analyser), "clicked", G_CALLBACK(notebook_set_page_analyser), st);
+    g_signal_connect(G_OBJECT(st->bouton_update), "clicked", G_CALLBACK(update_function), st);
+    g_signal_connect(G_OBJECT(st->bouton_file), "clicked", G_CALLBACK(selection_file_function), st);
+    g_signal_connect(G_OBJECT(st->bouton_folder), "clicked", G_CALLBACK(selection_folder_function), st);
     
     gtk_widget_show_all(st->window);
 
