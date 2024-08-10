@@ -327,7 +327,7 @@ void *worker_scan(void *user_data)
         return NULL;
     }
 
-    if (st->scanPath != NULL)
+    if (st->scanPath)
     {
         add_text_textview(MSG_SCAN, user_data);
     }
@@ -335,19 +335,17 @@ void *worker_scan(void *user_data)
     g_free(st->scanPath);
     
     fichier = popen(buffer, "r");
-    if (fichier == NULL)
+    g_free(buffer);
+
+    if (!fichier)
     {
         add_text_textview("ClamScan Erreur", user_data);
-        g_free(buffer);
         return NULL;
     }
 
-    g_free(buffer);
-
     while (fgets(output, sizeof(output), fichier) != NULL)
     {
-        size_t len = strlen(output) - 1;
-        output[len] = '\0';
+        output[strcspn(output, "\n")] = '\0';
         add_text_textview(output, user_data);
     }
 
@@ -355,7 +353,6 @@ void *worker_scan(void *user_data)
 
     g_source_remove(st->threadID);
     cleanup_progress_bar(st->progressbar);
-
     ActivationButton(user_data);
     
     return NULL;
@@ -373,45 +370,43 @@ void *worker_update(void *user_data)
     ActivationButton(user_data);
     
     buffer = g_strdup_printf(CMD_FRESHCLAN);
-    if (buffer == NULL)
+    if (!buffer)
     {
         add_text_textview("Allocation mémoire Impossible !!", user_data);
         return NULL;
     }
     
     fichier = popen(buffer, "r");
-    if (fichier == NULL)
+    g_free(buffer);
+    if (!fichier)
     {
         add_text_textview("freshclam Erreur", user_data);
-        g_free(buffer);
         return NULL;
     }
-
-    g_free(buffer);
 
     while (fgets(output, sizeof(output), fichier) != NULL)
     {
         
-        char *zbuffer = NULL;
+        char *message = NULL;
         
         if(compteur == 0)
         {
-            zbuffer = strdup(MSG_UPDATE);
+            message = strdup(MSG_UPDATE);
         }
         else
         {
-            zbuffer = textFormated(output);            
+            message = textFormated(output);            
         }
 
-        if(!zbuffer)
+        if(!message)
         {
             break;
         } 
 
-        add_text_textview(zbuffer, user_data);
+        add_text_textview(message, user_data);
         compteur++;
 
-        free(zbuffer);
+        free(message);
     }
 
     pclose(fichier);
