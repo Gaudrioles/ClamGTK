@@ -28,26 +28,24 @@
 
 typedef struct
 {
-    GtkApplication* application;
-    GtkWidget* window;
-    GtkWidget* notebook;
-    GtkWidget* bouton_analyser;
-    GtkWidget* bouton_update;
-    GtkWidget* bouton_retour;
-    GtkWidget* bouton_file;
-    GtkWidget* bouton_folder;
-    GtkWidget* progressbar;
-    GtkWidget* scrolled_text;
-    GtkWidget* scrolled_analyse;
-    GtkWidget* textview;
-    GtkTextBuffer* textBuffer;
+    GtkApplication *application;
+    GtkWidget *window;
+    GtkWidget *notebook;
+    GtkWidget *bouton_analyser;
+    GtkWidget *bouton_update;
+    GtkWidget *bouton_retour;
+    GtkWidget *bouton_file;
+    GtkWidget *bouton_folder;
+    GtkWidget *progressbar;
+    GtkWidget *scrolled_text;
+    GtkWidget *scrolled_analyse;
+    GtkWidget *textview;
+    GtkTextBuffer *textBuffer;
     guint threadID;
     int cmd_satus;
     int virusNb;
 
-    gchar* scanPath;
+    gchar *scanPath;
 }st_widgets;
-
-#define UNUSED(x) (void)(x)
 
 #endif // MAIN_H_INCLUDED
