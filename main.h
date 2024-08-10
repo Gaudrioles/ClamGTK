@@ -24,16 +24,7 @@
 #define IMAGE_ICON      "clamav"
 */
 
-#ifdef __unix__    
-    
-    #define CMD_FRESHCLAN   "pkexec sh -c \"systemctl stop clamav-freshclam && freshclam && systemctl start clamav-freshclam\""
-
-#elif defined(_WIN32) || defined(WIN32)
-
-    #define CMD_FRESHCLAN   ""
-
-#endif
-
+#define CMD_FRESHCLAN   "pkexec sh -c \"systemctl stop clamav-freshclam && freshclam && systemctl start clamav-freshclam\""
 
 typedef struct
 {
@@ -46,11 +37,13 @@ typedef struct
     GtkWidget* bouton_file;
     GtkWidget* bouton_folder;
     GtkWidget* progressbar;
-    GtkWidget* scrolled;
+    GtkWidget* scrolled_text;
+    GtkWidget* scrolled_analyse;
     GtkWidget* textview;
-    GtkTextBuffer* TextBuffer;
+    GtkTextBuffer* textBuffer;
     guint threadID;
-    gboolean lock;
+    int cmd_satus;
+    int virusNb;
 
     gchar* scanPath;
 }st_widgets;

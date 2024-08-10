@@ -7,11 +7,9 @@ void exit_button_clicked(GtkWidget *widget, gpointer user_data)
 {
     UNUSED(widget);
     st_widgets* st = (st_widgets*) user_data;
-    if(st->lock != TRUE)
-    {
-        g_application_quit(G_APPLICATION(st->application));
-        gtk_main_quit();
-    }
+    
+    g_application_quit(G_APPLICATION(st->application));
+    gtk_main_quit();
 }
 
 void activateCMD(GtkApplication* application, gpointer user_data)
@@ -39,17 +37,20 @@ void activateCMD(GtkApplication* application, gpointer user_data)
     gtk_notebook_set_show_tabs(GTK_NOTEBOOK(st->notebook), FALSE);
 
     /* TexView */
-    st->scrolled = gtk_scrolled_window_new(NULL, NULL);
+    st->scrolled_text = gtk_scrolled_window_new(NULL, NULL);
     st->textview = gtk_text_view_new();
     gtk_text_view_set_editable(GTK_TEXT_VIEW(st->textview), FALSE);
     gtk_text_view_set_justification(GTK_TEXT_VIEW(st->textview), GTK_JUSTIFY_CENTER);
     gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(st->textview), FALSE);
 
     /* TextBuffer */
-    st->TextBuffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(st->textview));
+    st->textBuffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(st->textview));
     
     /* ProgressBar */
     st->progressbar = gtk_progress_bar_new();
+
+    /* Set CMD */
+    st->cmd_satus = 1;
 
     /* Box */
     box_main            = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -59,12 +60,12 @@ void activateCMD(GtkApplication* application, gpointer user_data)
     gtk_box_set_homogeneous(GTK_BOX(box_scan_bouton), TRUE);    
     
     gtk_container_add(GTK_CONTAINER(st->window), box_main);
-    gtk_container_add(GTK_CONTAINER(st->scrolled), st->textview); 
+    gtk_container_add(GTK_CONTAINER(st->scrolled_text), st->textview); 
 
     space_in_box(box_scan_bouton, 3);
     gtk_box_pack_start(GTK_BOX(box_scan_bouton), st->bouton_retour, FALSE, FALSE, 0);
     
-    gtk_box_pack_start(GTK_BOX(box_scan), st->scrolled, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(box_scan), st->scrolled_text, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(box_scan), st->progressbar, FALSE, TRUE, 10);
     gtk_box_pack_start(GTK_BOX(box_scan), box_scan_bouton, FALSE, TRUE, 10);
 
@@ -136,17 +137,20 @@ void activate(GtkApplication* application, gpointer user_data)
     separateur = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
 
     /* TexView */
-    st->scrolled = gtk_scrolled_window_new(NULL, NULL);
+    st->scrolled_text = gtk_scrolled_window_new(NULL, NULL);
     st->textview = gtk_text_view_new();
     gtk_text_view_set_editable(GTK_TEXT_VIEW(st->textview), FALSE);
     gtk_text_view_set_justification(GTK_TEXT_VIEW(st->textview), GTK_JUSTIFY_CENTER);
     gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(st->textview), FALSE);
 
     /* TextBuffer */
-    st->TextBuffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(st->textview));
+    st->textBuffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(st->textview));
     
     /* ProgressBar */
     st->progressbar = gtk_progress_bar_new();
+
+    /* Set CMD */
+    st->cmd_satus = 0;
 
     /* Box */
     box_main            = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -164,7 +168,7 @@ void activate(GtkApplication* application, gpointer user_data)
     gtk_box_set_homogeneous(GTK_BOX(box_scan_bouton), TRUE);
 
     gtk_container_add(GTK_CONTAINER(st->window), box_main);
-    gtk_container_add(GTK_CONTAINER(st->scrolled), st->textview); 
+    gtk_container_add(GTK_CONTAINER(st->scrolled_text), st->textview); 
 
     gtk_box_pack_start(GTK_BOX(box_analyser), box_analyser_file, TRUE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(box_analyser), box_analyser_folder, TRUE, FALSE, 0);
@@ -197,7 +201,7 @@ void activate(GtkApplication* application, gpointer user_data)
     space_in_box(box_scan_bouton, 3);
     gtk_box_pack_start(GTK_BOX(box_scan_bouton), st->bouton_retour, FALSE, FALSE, 0);
     
-    gtk_box_pack_start(GTK_BOX(box_scan), st->scrolled, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(box_scan), st->scrolled_text, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(box_scan), st->progressbar, FALSE, TRUE, 10);
     gtk_box_pack_start(GTK_BOX(box_scan), box_scan_bouton, FALSE, TRUE, 10);
 

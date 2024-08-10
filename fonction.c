@@ -14,6 +14,38 @@ struct DispatchData {
     char* output_str;
 };
 
+void SetSensitiveButton(GtkWidget* widget)
+{
+    if(gtk_widget_get_sensitive(widget) == TRUE)
+    {
+        gtk_widget_set_sensitive(widget, FALSE);
+    }
+    else
+    {
+        gtk_widget_set_sensitive(widget, TRUE);
+    }
+}
+
+void ActivationButton(st_widgets* st)
+{
+    switch(st->cmd_satus)
+    {
+        case 0:            
+            SetSensitiveButton(st->bouton_retour);
+            SetSensitiveButton(st->bouton_analyser);
+            SetSensitiveButton(st->bouton_update);
+            break;
+        
+        case 1:
+            SetSensitiveButton(st->bouton_retour);
+            break;
+        default:
+            break;
+    }
+
+    return;
+}
+
 void strcut(char* source, const char* supp) 
 {
     if (!*supp || !strstr(source, supp))
@@ -177,10 +209,7 @@ void notebook_set_page_default(GtkWidget* bouton, gpointer user_data)
 {
     UNUSED(bouton);
     st_widgets* st = (st_widgets*) user_data;
-    if(st->lock == TRUE)
-    {
-        return;
-    }
+    
     gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 0);
 }
 
@@ -188,10 +217,7 @@ void notebook_set_page_analyser(GtkWidget* bouton, gpointer user_data)
 {
     UNUSED(bouton);
     st_widgets* st = (st_widgets*) user_data;
-    if(st->lock == TRUE)
-    {
-        return;
-    }
+    
     gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 1);
 }
 
@@ -247,7 +273,7 @@ void add_text_textview(const gchar* text, gpointer user_data)
     struct DispatchData* data = g_new0(struct DispatchData, 1);
     
     data->output_str = g_strdup_printf("%s\n", text);
-    data->buffer = st->TextBuffer;
+    data->buffer = st->textBuffer;
     
     gdk_threads_add_idle((GSourceFunc)display_status_textbuffer, data);
 }
@@ -298,6 +324,7 @@ void* worker_scan(void* user_data)
     char output[1024];
 
     clear_textView(st->textview);
+    ActivationButton(user_data);
     
     buffer = g_strdup_printf("clamscan -r \"%s\"", st->scanPath);
     if (!buffer)
@@ -334,7 +361,8 @@ void* worker_scan(void* user_data)
 
     g_source_remove(st->threadID);
     cleanup_progress_bar(st->progressbar);
-    st->lock = FALSE;
+
+    ActivationButton(user_data);
     
     return NULL;
 }
@@ -348,6 +376,7 @@ void* worker_update(void* user_data)
     int compteur = 0;
 
     clear_textView(st->textview);
+    ActivationButton(user_data);
     
     buffer = g_strdup_printf(CMD_FRESHCLAN);
     if (buffer == NULL)
@@ -395,7 +424,7 @@ void* worker_update(void* user_data)
 
     g_source_remove(st->threadID);
     cleanup_progress_bar(st->progressbar);
-    st->lock = FALSE;
+    ActivationButton(user_data);
     
     return NULL;
 }
@@ -475,11 +504,6 @@ void selection_file_function(GtkWidget* button, gpointer user_data)
     st_widgets* st = (st_widgets*) user_data;
     pthread_t thread;
 
-    if(st->lock == TRUE)
-    {
-        return;
-    }
-
     st->scanPath = selection_fichier(user_data);
     if(st->scanPath == NULL)
     {
@@ -487,8 +511,6 @@ void selection_file_function(GtkWidget* button, gpointer user_data)
     }
 
     gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
-
-    st->lock = TRUE;
 
     st->threadID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);    
     pthread_create(&thread, NULL, worker_scan, (void*) user_data);
@@ -502,11 +524,6 @@ void selection_folder_function(GtkWidget* button, gpointer user_data)
     st_widgets* st = (st_widgets*) user_data;
     pthread_t thread;
 
-    if(st->lock == TRUE)
-    {
-        return;
-    }
-
     st->scanPath = selection_repertoire(user_data);
     if(st->scanPath == NULL)
     {
@@ -514,8 +531,6 @@ void selection_folder_function(GtkWidget* button, gpointer user_data)
     }
 
     gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
-
-    st->lock = TRUE;
     
     st->threadID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);
     pthread_create(&thread, NULL, worker_scan, (void*) user_data);
@@ -529,15 +544,8 @@ void update_function(GtkWidget* button, gpointer user_data)
     st_widgets* st = (st_widgets*) user_data;
     pthread_t thread;
 
-    if(st->lock == TRUE)
-    {
-        return;
-    }
-
     gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
-
-    st->lock = TRUE;
-    
+        
     st->threadID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);
     pthread_create(&thread, NULL, worker_update, (void*) user_data);
 
@@ -548,15 +556,8 @@ void scan_cmd(gpointer user_data)
 {
     st_widgets* st = (st_widgets*) user_data;
     pthread_t thread;
-
-    if(st->lock == TRUE)
-    {
-        return;
-    }
-
+    
     gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
-
-    st->lock = TRUE;
     
     st->threadID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);
     pthread_create(&thread, NULL, worker_scan, (void*) user_data);
