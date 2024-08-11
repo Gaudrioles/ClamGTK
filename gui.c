@@ -91,6 +91,8 @@ void activate(GtkApplication *application, st_widgets *st)
     GtkWidget *box_right_h_b_u = NULL;
     GtkWidget *box_scan = NULL;
     GtkWidget *box_scan_bouton = NULL;
+    GtkWidget *box_elements = NULL;
+    GtkWidget *box_elements_bouton = NULL;
     GtkWidget *imageClamav = NULL;
     GtkWidget *label_analyser = NULL;
     GtkWidget *label_update = NULL;
@@ -138,6 +140,10 @@ void activate(GtkApplication *application, st_widgets *st)
     gtk_text_view_set_justification(GTK_TEXT_VIEW(st->textview), GTK_JUSTIFY_CENTER);
     gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(st->textview), FALSE);
 
+    /* Elements */
+    st->scrolled_analyse = gtk_scrolled_window_new(NULL, NULL);
+    st->box_objets = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+
     /* TextBuffer */
     st->textBuffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(st->textview));
     
@@ -160,10 +166,15 @@ void activate(GtkApplication *application, st_widgets *st)
     box_scan            = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     box_scan_bouton     = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
+    box_elements            = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    box_elements_bouton     = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+
     gtk_box_set_homogeneous(GTK_BOX(box_scan_bouton), TRUE);
+    gtk_box_set_homogeneous(GTK_BOX(box_elements_bouton), TRUE);
 
     gtk_container_add(GTK_CONTAINER(st->window), box_main);
-    gtk_container_add(GTK_CONTAINER(st->scrolled_text), st->textview); 
+    gtk_container_add(GTK_CONTAINER(st->scrolled_text), st->textview);
+    gtk_container_add(GTK_CONTAINER(st->scrolled_analyse), st->box_objets);
 
     gtk_box_pack_start(GTK_BOX(box_analyser), box_analyser_file, TRUE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(box_analyser), box_analyser_folder, TRUE, FALSE, 0);
@@ -200,9 +211,13 @@ void activate(GtkApplication *application, st_widgets *st)
     gtk_box_pack_start(GTK_BOX(box_scan), st->progressbar, FALSE, TRUE, 10);
     gtk_box_pack_start(GTK_BOX(box_scan), box_scan_bouton, FALSE, TRUE, 10);
 
+    gtk_box_pack_start(GTK_BOX(box_elements), st->scrolled_analyse, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(box_elements), box_elements_bouton, FALSE, TRUE, 10);
+
     gtk_notebook_append_page(GTK_NOTEBOOK(st->notebook), imageClamav, NULL);
     gtk_notebook_append_page(GTK_NOTEBOOK(st->notebook), box_analyser, NULL);
     gtk_notebook_append_page(GTK_NOTEBOOK(st->notebook), box_scan, NULL);
+    gtk_notebook_append_page(GTK_NOTEBOOK(st->notebook), box_elements, NULL);
 
     gtk_box_pack_start(GTK_BOX(box_main), box_right_button, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(box_main), separateur, TRUE, TRUE, 0);

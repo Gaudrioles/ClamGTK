@@ -11,3 +11,5 @@ BUILD 1.1
 -*- Add -*- Ajout PKGBUILD pour Arch Linux;
 BUILD 1.2
 -*- Add -*- Ajour fonction coloration du texte;
+BUILD 1.3
+-*- Add -*- Ajout Fonction supression virus;

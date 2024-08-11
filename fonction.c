@@ -4,15 +4,20 @@
 #include <string.h>
 #include <pthread.h>
 #include <ctype.h>
+#include <dirent.h>
+#include <errno.h>
+#include <sys/stat.h>
 
 #include "main.h"
 #include "fonction.h"
+#include "stack.h"
 
 struct DispatchData
 {
     GtkTextBuffer *buffer;
     gchar *virus_name;
     char *output_str;
+    st_widgets *pst;
 };
 
 void SetSensitiveButton(GtkWidget *widget)
@@ -141,6 +146,9 @@ static gboolean display_status_textbuffer(struct DispatchData *data)
 
                 strcut(data->output_str, ": ");
                 output = g_strdup_printf("%s : <span color=\"orange\">WARNING</span> <span color=\"red\">%s\n</span>", data->output_str, buffer);
+                data->pst->virusNb++;
+                Virus v = add_virus(buffer, data->output_str);
+                data->pst->st_virus = push_stack(data->pst->st_virus, v);
                 free(buffer);
             } else
             {
@@ -241,11 +249,20 @@ GtkWidget *gtk_label_new_with_markup(const char *text, int color)
 
     switch (color)
     {
+        case 0:
+            buffer = g_strdup_printf("<span color=\"white\" font=\"20\" font_family=\"ubuntu\"><b>%s</b></span>", text);
+            break;
         case 1:
             buffer = g_strdup_printf("<span color=\"green\" font=\"20\" font_family=\"ubuntu\"><b>%s</b></span>", text);
             break;
         case 2:
             buffer = g_strdup_printf("<span color=\"red\" font=\"20\" font_family=\"ubuntu\"><b>%s</b></span>", text);
+            break;
+        case 3:
+            buffer = g_strdup_printf("<span color=\"orange\">%s</span>", text);
+            break;
+        case 4:
+            buffer = g_strdup_printf("<span color=\"red\">%s</span>", text);
             break;
         
         default:
@@ -268,6 +285,7 @@ void add_text_textview(const gchar *text, st_widgets *st)
     
     data->output_str = g_strdup_printf("%s\n", text);
     data->buffer = st->textBuffer;
+    data->pst = st;
     
     gdk_threads_add_idle((GSourceFunc)display_status_textbuffer, data);
 }
@@ -353,7 +371,7 @@ void *worker_scan(void *user_data)
 
     g_source_remove(st->threadID);
     cleanup_progress_bar(st->progressbar);
-    ActivationButton(user_data);
+    check_virus_detected(st);
     
     return NULL;
 }
@@ -545,4 +563,282 @@ void scan_cmd(st_widgets *st)
     pthread_create(&thread, NULL, worker_scan, (void*) st);
     
     return;
+}
+
+int check_remove(const char *filePath)
+{
+    if((remove(filePath)) == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        gchar *tmp = NULL;
+        
+        if(!(tmp = g_strdup_printf("%s rm \"%s\"", CMD_DEL, filePath)))
+        {
+            return -1;
+        }
+        
+        if(system(tmp) == -1)
+        {
+            g_free(tmp);
+            return -1;
+        }
+
+        g_free(tmp);
+    }
+
+    return 0;
+
+}
+
+void supression_fonction(GtkWidget *widget, st_widgets *st)
+{
+    const gchar *tmp = NULL;
+    char buffer[BUFFER_SIZE];
+
+    GtkWidget *parent = gtk_widget_get_parent(widget);
+    if(parent)
+    {
+        if(!(tmp = gtk_widget_get_name(widget)))
+        {
+            return;
+        }
+        gtk_widget_destroy(parent);
+    }
+    
+    if((get_virus_data(buffer, tmp)) != 0)
+    {
+        return;
+    }
+    
+    check_remove(buffer);
+
+    if(st->virusNb != 0)
+    {
+        st->virusNb--;
+    }
+
+    if(st->virusNb == 0)
+    {
+        ActivationButton(st);
+        gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 0);
+    }
+}
+
+void validation_fonction(GtkWidget *widget, st_widgets *st)
+{
+    const gchar *tmp = NULL;
+    char buffer[BUFFER_SIZE];
+
+    GtkWidget *parent = gtk_widget_get_parent(widget);
+    if(parent)
+    {
+        if(!(tmp = gtk_widget_get_name(widget)))
+        {
+            return;
+        }
+        gtk_widget_destroy(parent);
+    }
+    
+    if((get_virus_data(buffer, tmp)) != 0)
+    {
+        return;
+    }
+
+    if(st->virusNb != 0)
+    {
+        st->virusNb--;
+    }
+
+    if(st->virusNb == 0)
+    {
+        ActivationButton(st);
+        gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 0);
+    }
+}
+
+int store_virus_data(const char *filepath, const char *filename)
+{
+    gchar *tmp = NULL;
+    
+    if (!(tmp = g_strdup_printf("%s/%s/TMP_%s.ZxvirusxZ", getenv("HOME"), CLAMGTK_CONF, filename)))
+    {
+        return -1;
+    }
+
+    FILE *fichier = NULL;
+
+    fichier = fopen(tmp, "w+");
+
+    if(!fichier)
+    {
+        g_free(tmp);
+        return -1;
+    }
+
+    fprintf(fichier, "%s", filepath);
+
+    fclose(fichier);
+
+    g_free(tmp);
+
+    return 0;
+}
+
+int get_virus_data(char *dest, const char *filename)
+{
+    gchar *tmp = NULL;
+    char buffer[BUFFER_SIZE];
+    
+    if (!(tmp = g_strdup_printf("%s/%s/TMP_%s.ZxvirusxZ", getenv("HOME"), CLAMGTK_CONF, filename)))
+    {
+        return -1;
+    }
+
+    FILE *fichier = NULL;
+
+    fichier = fopen(tmp, "r");
+
+    if(!fichier)
+    {
+        g_free(tmp);
+        return -1;
+    }
+    
+    if(!(fgets(buffer, BUFFER_SIZE, fichier)))
+    {
+        g_free(tmp);
+        fclose(fichier);
+        return -1;
+    }
+
+    fclose(fichier);
+    if((remove(tmp) != 0))
+    {
+        fprintf(stderr, "Suppression impossible %s\n", tmp);
+    }
+    g_free(tmp);
+
+    strncpy(dest, buffer, BUFFER_SIZE);
+
+    return 0;
+}
+
+void add_virus_elements(st_widgets *st, int nombre)
+{
+    gchar *base = NULL;
+    gchar *tmp = NULL;
+
+    if(!(base = g_path_get_basename(st->st_virus->pv.VirusPath)))
+    {
+        return;
+    }
+
+    if(!(tmp = g_strdup_printf("%d", nombre)))
+    {
+        g_free(base);
+        return;
+    }
+    
+
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    GtkWidget *label_fichier    = gtk_label_new_with_markup(base, 3);
+    GtkWidget *label_virus      = gtk_label_new_with_markup(st->st_virus->pv.virusName, 4);
+    
+    GtkWidget *button_del   = gtk_button_new_with_image(IMAGE_BT_DEL);
+    GtkWidget *button_valid = gtk_button_new_with_image(IMAGE_BT_VALID);
+
+    gtk_widget_set_name(button_del, tmp);
+    gtk_widget_set_name(button_valid, tmp);
+    if((store_virus_data(st->st_virus->pv.VirusPath, tmp) != 0))
+    {
+       return;
+    }
+    
+    gtk_box_pack_start(GTK_BOX(box), label_fichier, TRUE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), label_virus, TRUE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), button_del, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), button_valid, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(st->box_objets), box, FALSE, FALSE, 0);
+
+    g_signal_connect(button_del, "clicked", G_CALLBACK(supression_fonction), st);
+    g_signal_connect(button_valid, "clicked", G_CALLBACK(validation_fonction), st);
+
+    gtk_widget_show_all(box);
+    g_free(base);
+    g_free(tmp);
+}
+
+void add_virus_titre(st_widgets *st)
+{
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    GtkWidget *label = gtk_label_new_with_markup(MSG_VIRUS, 0);
+    
+    gtk_box_pack_start(GTK_BOX(box), label, TRUE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(st->box_objets), box, FALSE, FALSE, 0);
+
+    gtk_widget_show_all(box);
+}
+
+void check_virus_detected(st_widgets *st)
+{
+    if(st->virusNb == 0)
+    {
+        ActivationButton(st);
+        return;
+    }
+
+    int compteur = 0;
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 3);
+    add_virus_titre(st);
+
+    while(compteur != st->virusNb)
+    {
+        add_virus_elements(st, compteur);
+        st->st_virus = pop_stack(st->st_virus);
+        compteur++;
+    }
+}
+
+int directory_exists(const char *path)
+{
+    struct stat info;
+
+    if (stat(path, &info) != 0)
+    {
+        return -1;
+    }
+    else if (info.st_mode & S_IFDIR)
+    {
+        return 0;
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+int check_conf_folder(void)
+{
+    gchar *buffer = NULL;
+
+    if (!(buffer = g_strdup_printf("%s/%s", getenv("HOME"), CLAMGTK_CONF)))
+    {
+        return -1;
+    }
+
+    if(directory_exists(buffer) != 0)
+    {
+        if((mkdir(buffer, 0755)) != 0)
+        {
+            return -1;
+        }
+    }
+
+    g_free(buffer);
+
+    return 0;
 }

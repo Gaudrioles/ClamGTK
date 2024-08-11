@@ -5,12 +5,18 @@
 #include "main.h"
 #include "gui.h"
 #include "fonction.h"
+#include "stack.h"
 
 int main (int argc, char *argv[])
 {
     int status;
     st_widgets *st =  NULL;
     gboolean cmd = FALSE;
+
+    if(check_conf_folder() != 0)
+    {
+        return -1;
+    }
 
     if(!(st = g_malloc(sizeof(st_widgets))))
     {
@@ -29,7 +35,9 @@ int main (int argc, char *argv[])
         }
         argc = 1;
     }
-        
+
+    st->st_virus = new_stack();
+    st->virusNb = 0;
     st->application = gtk_application_new("ClamGTK.app", G_APPLICATION_DEFAULT_FLAGS); /*G_APPLICATION_FLAGS_NONE*/ /*G_APPLICATION_DEFAULT_FLAGS*/
     
     if(cmd == TRUE)
@@ -44,7 +52,8 @@ int main (int argc, char *argv[])
     status = g_application_run(G_APPLICATION(st->application), argc, argv);
     
     g_object_unref(st->application);
-    g_free(st);
+    st->st_virus = clear_stack(st->st_virus);
+    g_free(st);    
     
     return status;
 }
