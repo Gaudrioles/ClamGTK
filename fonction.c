@@ -792,7 +792,14 @@ void check_virus_detected(st_widgets *st)
     }
 
     int compteur = 0;
-    gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 3);
+    if(st->cmd_satus == 1)
+    {
+        gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 1);
+    }
+    else
+    {
+        gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 3);
+    }
     add_virus_titre(st);
 
     while(compteur != st->virusNb)
