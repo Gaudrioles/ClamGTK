@@ -17,6 +17,8 @@
 #define IMAGE_BT_UPDATE "/usr/share/ClamGTK/update.png"
 #define IMAGE_BT_FILE   "/usr/share/ClamGTK/file.png"
 #define IMAGE_BT_FOLDER "/usr/share/ClamGTK/folder.png"
+#define IMAGE_BT_VALID  "/usr/share/ClamGTK/valid.png"
+#define IMAGE_BT_DEL    "/usr/share/ClamGTK/del.png"
 #define IMAGE_ICON      "clamav"
 #define CLAMGTK_CONF    ".config/ClamGTK"
 
