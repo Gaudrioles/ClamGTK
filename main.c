@@ -13,19 +13,6 @@ int main (int argc, char *argv[])
     st_widgets *st =  NULL;
     gboolean cmd = FALSE;
 
-    if(check_if_already_running(CLAMGTK_LOCK) == 0)
-    {
-        int ret = system(MSG_RUN);
-        return ret;
-    }
-    else
-    {
-        if(create_lock_file(CLAMGTK_LOCK) != 0)
-        {
-            return -1;
-        }
-    }
-
     if(check_conf_folder() != 0)
     {
         return -1;
@@ -51,7 +38,17 @@ int main (int argc, char *argv[])
 
     st->st_virus = new_stack();
     st->virusNb = 0;
-    st->application = gtk_application_new("ClamGTK.app", G_APPLICATION_DEFAULT_FLAGS); /*G_APPLICATION_FLAGS_NONE*/ /*G_APPLICATION_DEFAULT_FLAGS*/
+    st->application = gtk_application_new(CLAMGTK_APP, G_APPLICATION_DEFAULT_FLAGS); /*G_APPLICATION_FLAGS_NONE*/ /*G_APPLICATION_DEFAULT_FLAGS*/
+
+    g_application_register(G_APPLICATION(st->application), NULL, NULL);
+
+    if(g_application_get_is_remote(G_APPLICATION(st->application)))
+    {
+        st->st_virus = clear_stack(st->st_virus);
+        g_free(st);
+        int ret = system(MSG_RUN);
+        return ret;
+    }
     
     if(cmd == TRUE)
     {
@@ -67,10 +64,6 @@ int main (int argc, char *argv[])
     g_object_unref(st->application);
     st->st_virus = clear_stack(st->st_virus);
     g_free(st);
-    if(remove_lock_file(CLAMGTK_LOCK) != 0)
-    {
-        fprintf(stderr, "Suppression Erreur %s\n", CLAMGTK_LOCK);
-    }
     
     return status;
 }

@@ -22,7 +22,7 @@
 #define IMAGE_BT_DEL    "/usr/share/ClamGTK/del.png"
 #define IMAGE_ICON      "clamav"
 #define CLAMGTK_CONF    ".config/ClamGTK"
-#define CLAMGTK_LOCK    ".config/ClamGTK/ClamGTK.lock"
+#define CLAMGTK_APP     "ClamGTK.app"
 
 /*
 #define IMAGE_CLAMAV    "DATA/clamav.png"
