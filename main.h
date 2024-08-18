@@ -10,6 +10,7 @@
 #define MSG_SCAN        "\n----------- Analyse en cours -----------\n"
 #define MSG_UPDATE      "\n\n----------- ClamAV update process started -----------\n\n"
 #define MSG_VIRUS       "Fichier dangereux identifié\nsupprimer ou conserver ?\n"
+#define MSG_RUN         "zenity --warning --title \"ClamGTK\" --width 200 --height 100 --text \"ClamGTK already running\""
 
 
 #define IMAGE_CLAMAV    "/usr/share/ClamGTK/clamav.png"
@@ -21,6 +22,7 @@
 #define IMAGE_BT_DEL    "/usr/share/ClamGTK/del.png"
 #define IMAGE_ICON      "clamav"
 #define CLAMGTK_CONF    ".config/ClamGTK"
+#define CLAMGTK_LOCK    ".config/ClamGTK/ClamGTK.lock"
 
 /*
 #define IMAGE_CLAMAV    "DATA/clamav.png"

@@ -31,5 +31,8 @@ char *getVirusName(const char *buffer);
 
 int get_virus_data(char *dest, const char *filename);
 int check_conf_folder(void);
+int check_if_already_running(const char *lock_file);
+int create_lock_file(const char *lock_file);
+int remove_lock_file(const char *lock_file);
 
 #endif /* !GTK_FONCTION_H_INCLUDED */

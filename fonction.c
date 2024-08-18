@@ -849,3 +849,76 @@ int check_conf_folder(void)
 
     return 0;
 }
+
+int check_if_already_running(const char *lock_file)
+{
+    FILE *fichier = NULL;
+    gchar *buffer = NULL;
+
+    buffer = g_strdup_printf("%s/%s", getenv("HOME"), lock_file);
+    if(!buffer)
+    {
+        return -1;
+    }
+
+    fichier = fopen(buffer, "r");
+    if(!fichier)
+    {
+        g_free(buffer);
+        return -1;
+    }
+
+    fclose(fichier);
+    g_free(buffer);
+
+    return 0;
+}
+
+int create_lock_file(const char *lock_file)
+{
+    FILE *fichier = NULL;
+    gchar *buffer = NULL;
+
+    buffer = g_strdup_printf("%s/%s", getenv("HOME"), lock_file);
+    if(!buffer)
+    {
+        return -1;
+    }
+
+    fichier = fopen(buffer, "w+");
+    if(fichier == NULL)
+    {
+        g_free(buffer);
+        return -1;
+    }    
+
+    fprintf(fichier, "Running");
+    fclose(fichier);
+    g_free(buffer);
+
+    return 0;
+}
+
+int remove_lock_file(const char *lock_file)
+{
+    if(check_if_already_running(lock_file) != 0)
+    {
+        return -1;
+    }
+    gchar *buffer = NULL;
+
+    buffer = g_strdup_printf("%s/%s", getenv("HOME"), lock_file);
+    if(!buffer)
+    {
+        return -1;
+    }
+
+    if((remove(buffer)) != 0)
+    {
+        g_free(buffer);
+        return -1;
+    }
+    g_free(buffer);
+
+    return 0;
+}
