@@ -14,4 +14,4 @@ BUILD 1.2
 BUILD 1.3
 -*- Add -*- Ajout Fonction supression virus;
 BUILD 1.4
--*- Add -*- Ajout fonction lock file;
+-*- Add -*- Ajout Verif already instance;
