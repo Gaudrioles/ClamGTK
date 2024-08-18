@@ -21,7 +21,7 @@ IF(UNIX)
     SET(CPACK_PACKAGE_CONTACT "bubi.gaudrioles@hotmail.com")
     SET(CPACK_DEBIAN_PACKAGE_DESCRIPTION "Interface Graphique pour ClamAV")
     SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Bubi GAUDRIOLES")
-    SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libgtk-3-0")
+    SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libgtk-3-0, zenity")
     INCLUDE(CPack)
     
     # BUILD #
