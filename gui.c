@@ -16,7 +16,6 @@ void activateCMD(GtkApplication *application, st_widgets *st)
     GtkWidget *box_scan_bouton = NULL;
     GtkWidget *box_elements = NULL;
     GtkWidget *box_elements_bouton = NULL;
-    GtkWidget *imageClamav = NULL;
 
     /* Window */
     st->window = gtk_application_window_new(application);
@@ -30,9 +29,6 @@ void activateCMD(GtkApplication *application, st_widgets *st)
     
     /* Bouton */
     st->bouton_retour   = gtk_button_new_with_label("Quitter");
-
-    /* Image */
-    imageClamav = gtk_image_new_from_file(IMAGE_CLAMAV);
     
     /* Notebook */
     st->notebook = gtk_notebook_new();
@@ -83,7 +79,6 @@ void activateCMD(GtkApplication *application, st_widgets *st)
 
     gtk_notebook_append_page(GTK_NOTEBOOK(st->notebook), box_scan, NULL);
     gtk_notebook_append_page(GTK_NOTEBOOK(st->notebook), box_elements, NULL);
-    gtk_notebook_append_page(GTK_NOTEBOOK(st->notebook), imageClamav, NULL);
 
     gtk_box_pack_end(GTK_BOX(box_main), st->notebook, TRUE, TRUE, 0);
 

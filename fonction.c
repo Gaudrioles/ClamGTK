@@ -83,17 +83,10 @@ gboolean virus_traitement(st_widgets *st)
     {
         /* Déverrouiller les boutons */
         ActivationButton(st);
-        
-        /* Page par défaut */
-        if (st->cmd_satus != 1)
-        {
-            gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 0);
-        }
-        else
-        {
-            gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
-        }
 
+        /* Changement de la page */
+        gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), (st->cmd_satus == 1) ? 0 : 2);
+        
         /* Nettoyage de la pile */
         st->scanItem = clear_stack(st->scanItem);
         virusDetection = 0;
@@ -1075,6 +1068,12 @@ void check_virus_detected(st_widgets *st)
         current = current->next;
     }
 
+    if(virusDetection == 0)
+    {
+        virusDetection = -1;
+        return;
+    }
+    
     /* Mise à jour de la page du notebook en fonction de cmd_status */
     gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), (st->cmd_satus == 1) ? 1 : 3);
 }
