@@ -16,6 +16,7 @@ void activateCMD(GtkApplication *application, st_widgets *st)
     GtkWidget *box_scan_bouton = NULL;
     GtkWidget *box_elements = NULL;
     GtkWidget *box_elements_bouton = NULL;
+    GtkWidget *imageClamav = NULL;
 
     /* Window */
     st->window = gtk_application_window_new(application);
@@ -29,6 +30,9 @@ void activateCMD(GtkApplication *application, st_widgets *st)
     
     /* Bouton */
     st->bouton_retour   = gtk_button_new_with_label("Quitter");
+
+    /* Image */
+    imageClamav = gtk_image_new_from_file(IMAGE_CLAMAV);
     
     /* Notebook */
     st->notebook = gtk_notebook_new();
@@ -79,6 +83,7 @@ void activateCMD(GtkApplication *application, st_widgets *st)
 
     gtk_notebook_append_page(GTK_NOTEBOOK(st->notebook), box_scan, NULL);
     gtk_notebook_append_page(GTK_NOTEBOOK(st->notebook), box_elements, NULL);
+    gtk_notebook_append_page(GTK_NOTEBOOK(st->notebook), imageClamav, NULL);
 
     gtk_box_pack_end(GTK_BOX(box_main), st->notebook, TRUE, TRUE, 0);
 
@@ -134,10 +139,10 @@ void activate(GtkApplication *application, st_widgets *st)
     st->bouton_folder   = gtk_button_new_with_image(IMAGE_BT_FOLDER);
 
     /* Label */
-    label_analyser        = gtk_label_new_with_markup("Analyser", 0);
-    label_update          = gtk_label_new_with_markup("Update", 0);
-    label_analyser_file   = gtk_label_new_with_markup("Fichier", 0);
-    label_analyser_folder = gtk_label_new_with_markup("Repertoire", 0);
+    label_analyser        = gtk_label_new_with_markup("Analyser", 4);
+    label_update          = gtk_label_new_with_markup("Update", 4);
+    label_analyser_file   = gtk_label_new_with_markup("Fichier", 4);
+    label_analyser_folder = gtk_label_new_with_markup("Repertoire", 4);
 
     /* Notebook */
     st->notebook = gtk_notebook_new();

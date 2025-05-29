@@ -1,87 +1,137 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <glib.h>
+
 #include "stack.h"
 #include "main.h"
 
+/*-----------------------------------------------------------------*/
+
 Stack new_stack(void)
 {
-	return NULL;
+    return NULL;
 }
 
 /*-----------------------------------------------------------------*/
 
-int is_empty_stack(Stack st)
+gboolean is_empty_stack(Stack st)
 {
-	if(st == NULL)
+	if(!st)
 	{
-		return 1;
+		return TRUE;
 	}
-
-	return 0;
+    
+	
+	return FALSE;
 }
 
 /*-----------------------------------------------------------------*/
 
-Stack push_stack(Stack st, Virus p)
+Stack push_stack(Stack st, gchar *fileName, char *filePath, char *virusName, gboolean isClean)
 {
-	StackElement *element;
+    if (!fileName || !filePath)
+    {
+        fprintf(stderr, "Erreur : fileName ou filePath est NULL.\n");
+        exit(EXIT_FAILURE);
+    }
 
-	element = malloc(sizeof(*element));
+    StackElement *element = malloc(sizeof(*element));
+    if (!element)
+    {
+        fprintf(stderr, "Erreur : Problème d'allocation dynamique.\n");
+        exit(EXIT_FAILURE);
+    }
 
-	if(element == NULL)
-	{
-		fprintf(stderr, "Probleme allocation dynamique.\n");
-		exit(EXIT_FAILURE);
-	}
+    element->item.filepath = strdup(filePath);
+    if (!element->item.filepath)
+    {
+        fprintf(stderr, "Erreur : Problème d'allocation pour filePath.\n");
+        free(element);
+        exit(EXIT_FAILURE);
+    }
 
-	strcpy(element->pv.virusName, p.virusName);
-	strcpy(element->pv.VirusPath, p.VirusPath);
-	element->next = st;
+    element->item.fileName = g_strdup(fileName);
+    if (!element->item.fileName)
+    {
+        fprintf(stderr, "Erreur : Problème d'allocation pour fileName.\n");
+        free(element->item.filepath);
+        free(element);
+        exit(EXIT_FAILURE);
+    }
 
-	return element;
+    element->item.virusName = virusName ? g_strdup(virusName) : NULL;
+    if (virusName && !element->item.virusName)
+    {
+        fprintf(stderr, "Erreur : Problème d'allocation pour virusName.\n");
+        g_free(element->item.fileName);
+        free(element->item.filepath);
+        free(element);
+        exit(EXIT_FAILURE);
+    }
+
+    element->item.isClean = isClean;
+    element->next = st;
+
+    return element;
 }
 
 /*-----------------------------------------------------------------*/
 
 Stack pop_stack(Stack st)
 {
-	StackElement *element;
+    if (is_empty_stack(st))
+    {
+        return new_stack();
+    }
 
-	if(is_empty_stack(st))
-	{
-		return new_stack();
-	}
+    StackElement *element = st->next;
 
-	element = st->next;
-	
-	free(st);
+    free(st->item.filepath);
+    g_free(st->item.fileName);
+    g_free(st->item.virusName);
 
-	return element;
+    free(st);
+
+    return element;
 }
 
 /*-----------------------------------------------------------------*/
 
 Stack clear_stack(Stack st)
 {
-	while(!is_empty_stack(st))
-	{
-		st = pop_stack(st);
-	}
+    while (!is_empty_stack(st))
+    {
+        st = pop_stack(st);
+    }
 
-	return new_stack();
+    return new_stack();
 }
 
 /*-----------------------------------------------------------------*/
 
-Virus add_virus(char *name, char *path)
+void print_stack(Stack st)
 {
-    Virus p;
-
-    memset(&p, 0, sizeof(Virus));
+    StackElement *current = st;
 	
-	strncpy(p.virusName, name, sizeof(p.virusName) - 1);
-    strncpy(p.VirusPath, path, sizeof(p.VirusPath) - 1);
+	
+	if (is_empty_stack(st))
+    {
+        printf("La pile est vide.\n");
+        return;
+    }
 
-    return p;
+    printf("Contenu de la pile :\n");
+    while (current)
+    {
+		if(!current->item.isClean)
+        {
+			printf("  Nom du fichier : %s\n", current->item.fileName ? current->item.fileName : "(NULL)");
+			printf("  Chemin du fichier : %s\n", current->item.filepath ? current->item.filepath : "(NULL)");
+			printf("  Nom du virus : %s\n", current->item.virusName ? current->item.virusName : "(NULL)");
+		}
+		current = current->next;
+    }
 }
+
+/*-----------------------------------------------------------------*/

@@ -1,35 +1,54 @@
 #include <gtk/gtk.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <glib.h>
+#include <glib/gstdio.h>
 #include <pthread.h>
-#include <ctype.h>
-#include <dirent.h>
-#include <errno.h>
-#include <sys/stat.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #include "main.h"
 #include "fonction.h"
 #include "stack.h"
+#include "tool.h"
+#include "strtool.h"
 
-struct DispatchData
+double fraction = 0.0;
+int virusDetection = 0;
+
+typedef struct DispatchData
 {
     GtkTextBuffer *buffer;
-    gchar *virus_name;
     char *output_str;
-    st_widgets *pst;
-};
+    int color;
+} DispatchData;
+
+typedef struct DispatchDataVirus
+{
+    GtkTextBuffer *buffer;
+    Stack scanItem;
+} DispatchDataVirus;
+
+typedef struct DispatchDataUpdate
+{
+    GtkTextBuffer *buffer;
+    char *database;
+    char *sigs;
+    char *version;
+    gboolean upToDate;
+} DispatchDataUpdate;
+
+void CleanupThread(guint *source_id)
+{
+    if (source_id && *source_id > 0)
+    {
+        g_source_remove(*source_id);
+        *source_id = 0;
+    }
+}
 
 void SetSensitiveButton(GtkWidget *widget)
 {
-    if(gtk_widget_get_sensitive(widget) == TRUE)
-    {
-        gtk_widget_set_sensitive(widget, FALSE);
-    }
-    else
-    {
-        gtk_widget_set_sensitive(widget, TRUE);
-    }
+    gtk_widget_set_sensitive(widget, !gtk_widget_get_sensitive(widget));
 }
 
 void ActivationButton(st_widgets *st)
@@ -52,154 +71,209 @@ void ActivationButton(st_widgets *st)
     return;
 }
 
-void strcut(char *source, const char *supp) 
+void initAllDone(st_widgets *st)
 {
-    if (!*supp || !strstr(source, supp))
-    {
-        return;
-    }    
-
-    size_t len_supp = strlen(supp);
-    if (len_supp < 2)
-    {
-        return;
-    }
-
-    char caractereA = supp[0];
-    char caractereB = supp[1];
-    size_t len_source = strlen(source);
-
-    for (size_t i = 0; i < len_source - 1; i++) {
-        if (source[i] == caractereA && source[i + 1] == caractereB)
-        {
-            source[i] = '\0';
-            return;
-        }
-    }
+	st->compileDone = FALSE;
+    st->scanDone    = FALSE;
 }
 
-
-char *getVirusName(const char *buffer)
+gboolean virus_traitement(st_widgets *st)
 {
+    if (virusDetection == -1)
+    {
+        /* Déverrouiller les boutons */
+        ActivationButton(st);
+        
+        /* Page par défaut */
+        if (st->cmd_satus != 1)
+        {
+            gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 0);
+        }
+        else
+        {
+            gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
+        }
+
+        /* Nettoyage de la pile */
+        st->scanItem = clear_stack(st->scanItem);
+        virusDetection = 0;
+        return G_SOURCE_REMOVE;
+    }
+    
+    return G_SOURCE_CONTINUE;
+}
+
+void *worker_completion(void *user_data)
+{
+    st_widgets *st = (st_widgets *)user_data;
+    
+    while(!st->scanDone)
+    {
+        g_usleep(100000);
+    }
+
+    /* Suppression du thread progressbar */
+    CleanupThread(&st->thread_Progress_ID);
+
+    /* Temporisation */
+    g_usleep(2000000);
+
+    check_virus_detected(st);
+
+    guint thread_ID = g_timeout_add(100, (GSourceFunc)virus_traitement, st);
+    if (thread_ID == 0)
+    {
+        g_error("Erreur lors de la création de la thread\n");
+        return NULL;
+    }
+    
+    return NULL;
+}
+
+gboolean check_thread_scan(st_widgets *st)
+{
+    if(st->compileDone)
+    {
+        /* Suppression du thread pulse progressbar */
+        CleanupThread(&st->thread_Pulse_ID);
+        
+        /* Création du thread fraction progressbar */
+        st->thread_Progress_ID = g_timeout_add(100, (GSourceFunc)fraction_progressbar, st->progressbar);
+        if (st->thread_Progress_ID == 0)
+        {
+            g_error("Erreur lors de la création de la thread\n");
+            return G_SOURCE_REMOVE;
+        }
+        
+        return G_SOURCE_REMOVE;
+    }
+
+    return G_SOURCE_CONTINUE;
+}
+
+static gboolean display_status_textbuffer(DispatchData *data)
+{
+    GtkTextIter end;
+    gchar *buffer = NULL;
+
+    gtk_text_buffer_get_end_iter(data->buffer, &end);
+
+    switch (data->color)
+    {
+        case 1:
+            buffer = g_strdup_printf("<span foreground=\"green\" font_size=\"medium\" font_family=\"Ubuntu\"><b>%s</b></span>", data->output_str);
+            break;
+        case 2:
+            buffer = g_strdup_printf("<span foreground=\"orange\" font_size=\"medium\" font_family=\"Ubuntu\"><b>%s</b></span>", data->output_str);
+            break;
+        case 3:
+            buffer = g_strdup_printf("<span foreground=\"red\" font_size=\"medium\" font_family=\"Ubuntu\"><b>%s</b></span>", data->output_str);
+            break;
+        default:
+            buffer = g_strdup_printf("<span foreground=\"white\" font_size=\"medium\" font_family=\"Ubuntu\"><b>%s</b></span>", data->output_str);
+            break;
+    }
+    
     if (!buffer)
     {
-        return NULL;
+        g_error("Allocation mémoire impossible");
+        g_free(data);
+        return G_SOURCE_REMOVE;
     }
 
-    const char *result = strstr(buffer, ": ");
-    if (!result)
-    {
-        return NULL;
-    }
+    gtk_text_buffer_insert_markup(data->buffer, &end, buffer, -1);
 
-    result += 2; // Skip past ": "
-
-    // Calculate the length of the virus name
-    const char *end = strchr(result, ' ');
-    if (!end)
-    {
-        return NULL;
-    }
-
-    size_t name_len = end - result;
-
-    char *virus_name = (char*)malloc(name_len + 1);
-    if (!virus_name)
-    {
-        fprintf(stderr, "Memory allocation error\n");
-        return NULL;
-    }
-
-    strncpy(virus_name, result, name_len);
-    virus_name[name_len] = '\0';
-
-    return virus_name;
-}
-
-static gboolean display_status_textbuffer(struct DispatchData *data)
-{
-    GtkTextIter start, end;
-    gchar *output = NULL;
-    char *buffer = NULL;
-
-    gtk_text_buffer_get_bounds(data->buffer, &start, &end);
-
-    if (!gtk_text_iter_equal(&start, &end))
-    {
-        gchar *tampon = gtk_text_buffer_get_text(data->buffer, &start, &end, TRUE);
-        if (tampon)
-        {
-            char *result_OK = strstr(data->output_str, ": OK");/*File: OK*/
-            char *result_KO = strstr(data->output_str, "FOUND");/*File: Win.Test.EICAR_HDB-1 FOUND*/
-
-            if (result_OK)
-            {
-                strcut(data->output_str, ": ");
-                output = g_strdup_printf("%s : <span color=\"green\">%s\n</span>", data->output_str, "CLEAN");
-            } else if (result_KO)
-            {
-                buffer = getVirusName(data->output_str);
-                if (!buffer)
-                {
-                    exit(EXIT_FAILURE);
-                }
-
-                strcut(data->output_str, ": ");
-                output = g_strdup_printf("%s : <span color=\"orange\">WARNING</span> <span color=\"red\">%s\n</span>", data->output_str, buffer);
-                data->pst->virusNb++;
-                Virus v = add_virus(buffer, data->output_str);
-                data->pst->st_virus = push_stack(data->pst->st_virus, v);
-                free(buffer);
-            } else
-            {
-                output = g_strdup_printf("<span color=\"white\">%s</span>", data->output_str);
-            }
-
-            if (!output)
-            {
-                exit(EXIT_FAILURE);
-            }
-
-            gtk_text_buffer_insert_markup(data->buffer, &end, output, -1);
-            g_free(tampon);
-            g_free(output);
-            g_free(data->output_str);
-        }
-    }
-    else
-    {
-        gtk_text_buffer_set_text(data->buffer, data->output_str, -1);
-        g_free(data->output_str);
-    }
-
+    g_free(buffer);
     g_free(data);
+
     return G_SOURCE_REMOVE;
 }
 
-char *textFormated(const char *text)
+static gboolean display_scanItem(DispatchDataVirus *data)
 {
-    if (!text)
+    GtkTextIter end;
+    gchar *buffer = NULL;
+
+    /* Check DATA */
+    if (!data || !data->scanItem || !data->buffer)
     {
-        return NULL;
+        g_warning("Invalid data display_scanItem");
+        return G_SOURCE_REMOVE;
     }
 
-    size_t len = strlen(text);
+    /* Get iter position */
+    gtk_text_buffer_get_end_iter(data->buffer, &end);
 
-    if (len <= 28) 
+    /* Markup */
+    if (data->scanItem->item.isClean)
     {
-        return NULL;
+        buffer = g_strdup_printf("<span foreground=\"white\" font_size=\"medium\" font_family=\"Ubuntu\"><b>%s</b></span>\t :" "<span foreground=\"green\" font_size=\"medium\" font_family=\"Ubuntu\"><b>CLEAN\n</b></span>",data->scanItem->item.fileName);
+    }
+    else
+    {
+        buffer = g_strdup_printf("<span foreground=\"white\" font_size=\"medium\" font_family=\"Ubuntu\"><b>%s</b></span>\t :" "<span foreground=\"red\" font_size=\"medium\" font_family=\"Ubuntu\"><b>%s\n</b></span>", data->scanItem->item.fileName, data->scanItem->item.virusName);
     }
 
-    char *buffer = malloc((len - 28 + 1) * sizeof(char));
     if (!buffer)
     {
-        fprintf(stderr, "Erreur allocation memoire\n");
-        return NULL;
+        g_error("Allocation mémoire impossible");
+        g_free(data);
+        return G_SOURCE_REMOVE;
     }
 
-    strcpy(buffer, text + 28);
+    /* Insert Text */
+    gtk_text_buffer_insert_markup(data->buffer, &end, buffer, -1);
 
-    return buffer;
+    /* Cleanup */
+    g_free(buffer);
+    g_free(data);
+
+    return G_SOURCE_REMOVE;
+}
+
+static gboolean display_updateItem(DispatchDataUpdate *data)
+{
+    GtkTextIter end;
+    gchar *buffer = NULL;
+
+    /* Check DATA */
+    if (!data || !data->database || !data->sigs || !data->version)
+    {
+        g_warning("Invalid data display_scanItem");
+        return G_SOURCE_REMOVE;
+    }
+    
+    /* Get iter position */
+    gtk_text_buffer_get_end_iter(data->buffer, &end);
+
+    /* Markup */
+    if (data->upToDate)
+    {
+        buffer = g_strdup_printf("<span foreground=\"white\" font_size=\"medium\" font_family=\"Ubuntu\"><b>DataBase :%-25s  Signature :%-25s</b></span>\t :" "<span foreground=\"green\" font_size=\"medium\" font_family=\"Ubuntu\"><b>Version :%-25s\n</b></span>", data->database, data->sigs, data->version);
+    }
+    else
+    {
+        buffer = g_strdup_printf("<span foreground=\"white\" font_size=\"medium\" font_family=\"Ubuntu\"><b>DataBase :%-25s  Signature :%-25s</b></span>\t :" "<span foreground=\"orange\" font_size=\"medium\" font_family=\"Ubuntu\"><b>Version :%-25s\n</b></span>", data->database, data->sigs, data->version);
+    }
+
+    if (!buffer)
+    {
+        g_error("Allocation mémoire impossible");
+        g_free(data);
+        return G_SOURCE_REMOVE;
+    }
+
+    /* Insert Text */
+    gtk_text_buffer_insert_markup(data->buffer, &end, buffer, -1);
+
+    /* Cleanup */
+    g_free(buffer);
+    free(data->database);
+    free(data->sigs);
+    free(data->version);
+    g_free(data);
+
+    return G_SOURCE_REMOVE;
 }
 
 gboolean pulse_progress_bar(GtkWidget *progressBar)
@@ -208,9 +282,20 @@ gboolean pulse_progress_bar(GtkWidget *progressBar)
     return G_SOURCE_CONTINUE;
 }
 
+gboolean fraction_progressbar(GtkWidget *progressBar)
+{
+    if (fraction <= 1.0)
+    {
+        gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar), fraction);
+    }
+    
+    return G_SOURCE_CONTINUE;
+}
+
 void cleanup_progress_bar(GtkWidget *progressBar)
 {
-    gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar), 0.0);
+    fraction = 0.0;
+    gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar), fraction);
     return;
 }
 
@@ -244,50 +329,86 @@ void clear_textView(GtkWidget *text_view)
 
 GtkWidget *gtk_label_new_with_markup(const char *text, int color)
 {
-    GtkWidget *label   = NULL;
+    if (text == NULL)
+    {
+        g_warning("Text argument is NULL, returning empty label.");
+        return gtk_label_new("");
+    }
+
+    GtkWidget *label = NULL;
     gchar *buffer = NULL;
 
+    /* Markup */
     switch (color)
     {
-        case 0:
-            buffer = g_strdup_printf("<span color=\"white\" font=\"20\" font_family=\"ubuntu\"><b>%s</b></span>", text);
-            break;
         case 1:
-            buffer = g_strdup_printf("<span color=\"green\" font=\"20\" font_family=\"ubuntu\"><b>%s</b></span>", text);
+            buffer = g_strdup_printf("<span foreground=\"green\" font_size=\"medium\" font_family=\"Ubuntu\"><b>%s</b></span>", text);
             break;
         case 2:
-            buffer = g_strdup_printf("<span color=\"red\" font=\"20\" font_family=\"ubuntu\"><b>%s</b></span>", text);
+            buffer = g_strdup_printf("<span foreground=\"orange\" font_size=\"medium\" font_family=\"Ubuntu\"><b>%s</b></span>", text);
             break;
         case 3:
-            buffer = g_strdup_printf("<span color=\"orange\">%s</span>", text);
+            buffer = g_strdup_printf("<span foreground=\"red\" font_size=\"medium\" font_family=\"Ubuntu\"><b>%s</b></span>", text);
             break;
         case 4:
-            buffer = g_strdup_printf("<span color=\"red\">%s</span>", text);
+            buffer = g_strdup_printf("<span foreground=\"white\" font=\"20\" font_family=\"Ubuntu\"><b>%s</b></span>", text);
             break;
-        
         default:
-            buffer = g_strdup_printf("<span font=\"20\" font_family=\"ubuntu\"><b>%s</b></span>", text);
+            buffer = g_strdup_printf("<span foreground=\"white\" font_size=\"medium\" font_family=\"Ubuntu\"><b>%s</b></span>", text);
             break;
     }
 
-    label = gtk_label_new("");
-    
+    /* Label */
+    label = gtk_label_new(NULL);
     gtk_label_set_markup(GTK_LABEL(label), buffer);
 
+    /* Cleanup */
     g_free(buffer);
-    
+
     return label;
 }
 
-void add_text_textview(const gchar *text, st_widgets *st)
+void add_text_textview(GtkTextBuffer* buffer, const gchar *text, int color)
 {
-    struct DispatchData *data = g_new0(struct DispatchData, 1);
+    if(text)
+    {
+        DispatchData *data = g_new0(DispatchData, 1);
     
-    data->output_str = g_strdup_printf("%s\n", text);
-    data->buffer = st->textBuffer;
-    data->pst = st;
+        data->output_str = g_strdup_printf("%s\n", text);
+        data->buffer = buffer;
+        data->color = color;
+        
+        gdk_threads_add_idle((GSourceFunc)display_status_textbuffer, data);
+    }
+}
+
+void add_text_textviewVirus(GtkTextBuffer* buffer, StackElement *scanItem)
+{
+    if(scanItem->item.fileName)
+    {
+        DispatchDataVirus *data = g_new0(DispatchDataVirus, 1);
     
-    gdk_threads_add_idle((GSourceFunc)display_status_textbuffer, data);
+        data->scanItem = scanItem;
+        data->buffer = buffer;
+        
+        gdk_threads_add_idle((GSourceFunc)display_scanItem, data);
+    }
+}
+
+void add_text_textviewUpdate(GtkTextBuffer* buffer, ExtractedData *updateItem)
+{
+    if(updateItem)
+    {
+        DispatchDataUpdate *data = g_new0(DispatchDataUpdate, 1);
+        
+        data->buffer = buffer;
+        data->database = strdup(updateItem->database);
+        data->sigs = strdup(updateItem->sigs);
+        data->version = strdup(updateItem->version);
+        data->upToDate = updateItem->upToDate;
+        
+        gdk_threads_add_idle((GSourceFunc)display_updateItem, data);
+    }
 }
 
 void move_down_in_box(GtkWidget *box, int nb)
@@ -330,111 +451,162 @@ GtkWidget *gtk_button_new_with_image(const char *imageName)
 
 void *worker_scan(void *user_data)
 {
-    st_widgets *st = (st_widgets*)user_data;
+    st_widgets *st = (st_widgets *)user_data;
+    gchar *command = NULL;
     FILE *fichier = NULL;
-    gchar *buffer = NULL;
     char output[1024];
+    int compteur = 1;
+    int NombreElement = 0;
 
-    clear_textView(st->textview);
-    ActivationButton(user_data);
+    /* Compter nombre d'éléments dans le répertoire */
+    compteRepertoire(st->scanPath, &NombreElement);
     
-    buffer = g_strdup_printf("clamscan -r \"%s\"", st->scanPath);
-    if (!buffer)
+    /* Construction clamscan commande */
+    command = g_strdup_printf("clamscan --stdout -r \"%s\"", st->scanPath);
+    if (!command)
     {
-        add_text_textview("Allocation mémoire Impossible !!", user_data);
+        add_text_textview(st->textBuffer, "Allocation mémoire impossible", 0);
         return NULL;
     }
 
+    /* Nettoyage scanPath */
     if (st->scanPath)
     {
-        add_text_textview(MSG_SCAN, user_data);
+        g_free(st->scanPath);
+        st->scanPath = NULL;
     }
 
-    g_free(st->scanPath);
-    
-    fichier = popen(buffer, "r");
-    g_free(buffer);
+    /* Affichage du message */
+    add_text_textview(st->textBuffer, MSG_COMPILE, 0);
 
+    /* Execution clamscan commande */ 
+    fichier = popen(command, "r");
+    g_free(command);
     if (!fichier)
     {
-        add_text_textview("ClamScan Erreur", user_data);
+        add_text_textview(st->textBuffer, "Erreur lors de l'exécution de ClamScan", 0);
         return NULL;
     }
-
+    
+    /* Process output ligne par ligne */
     while (fgets(output, sizeof(output), fichier) != NULL)
     {
         output[strcspn(output, "\n")] = '\0';
-        add_text_textview(output, user_data);
+
+        if (compteur <= NombreElement)
+        {
+            if(!st->compileDone)
+            {
+                /* Affichage du message */
+                add_text_textview(st->textBuffer, MSG_SCAN, 0);
+                st->compileDone = TRUE;
+            }
+
+            char *filePath = getFilePath(output);
+            if (filePath)
+            {
+                gchar *fileName = getFileName(filePath);
+                if (fileName)
+                {
+                    gboolean isClean = checkIfClean(output);
+                    char *virusName = isClean ? NULL : getVirusName(output);
+                    st->scanItem = push_stack(st->scanItem, fileName, filePath, virusName, isClean);
+
+                    /* Update UI with the scan result */
+                    add_text_textviewVirus(st->textBuffer, st->scanItem);
+
+                    g_free(fileName);
+                    if (virusName)
+                    {
+                        free(virusName);
+                    }
+                }
+                free(filePath);
+            }
+        }
+        else
+        {
+            /* Display other output */
+            add_text_textview(st->textBuffer, output, 0);
+        }
+
+        /* Update the progress bar */
+        if (NombreElement > 0)
+        {
+            fraction = (double)compteur / NombreElement;
+        }
+
+        compteur++;
     }
 
+    /* Fermer le processus */
     pclose(fichier);
 
-    g_source_remove(st->threadID);
-    cleanup_progress_bar(st->progressbar);
-    check_virus_detected(st);
+    /* Affichage du message */
+    add_text_textview(st->textBuffer, MSG_SCAN_F, 0);
+
+    /* Clean up */
+    st->scanDone = TRUE;
     
     return NULL;
 }
 
 void *worker_update(void *user_data)
 {
-    st_widgets *st = (st_widgets*)user_data;
-    FILE *fichier = NULL;
-    gchar *buffer = NULL;
-    char output[1024];
-    int compteur = 0;
-
-    clear_textView(st->textview);
-    ActivationButton(user_data);
+    int regexSelect = -1;
+    st_widgets *st = (st_widgets *)user_data;
     
-    buffer = g_strdup_printf(CMD_FRESHCLAN);
-    if (!buffer)
-    {
-        add_text_textview("Allocation mémoire Impossible !!", user_data);
-        return NULL;
-    }
-    
-    fichier = popen(buffer, "r");
-    g_free(buffer);
+    /* Process Update */
+    FILE *fichier = popen(CMD_FRESHCLAN, "r");
     if (!fichier)
     {
-        add_text_textview("freshclam Erreur", user_data);
+        add_text_textview(st->textBuffer, "Erreur lors de l'exécution de freshclam !", 0);
         return NULL;
     }
 
+    /* Affichage du message */
+    add_text_textview(st->textBuffer, MSG_UPDATE, 0);
+
+    char output[1024];
     while (fgets(output, sizeof(output), fichier) != NULL)
     {
-        
-        char *message = NULL;
-        
-        if(compteur == 0)
+        /* Chercher dans le texte */
+        if(strstr(output, UPDATE_OK ))
         {
-            message = strdup(MSG_UPDATE);
+            regexSelect = 0;
+        }
+        else if(strstr(output, UPDATE_KO))
+        {
+            regexSelect = 1;
         }
         else
         {
-            message = textFormated(output);            
+            continue;
         }
 
-        if(!message)
+        ExtractedData result;
+
+        if (extractData(output, regexSelect, &result))
         {
-            break;
-        } 
-
-        add_text_textview(message, user_data);
-        compteur++;
-
-        free(message);
+            /* Affichage du texte */
+            add_text_textviewUpdate(st->textBuffer, &result);
+        }
     }
 
+    /* Fermer le processus */
     pclose(fichier);
 
-    g_source_remove(st->threadID);
+    /* Affichage du message */
+    add_text_textview(st->textBuffer, MSG_UPDATE_F, 0);
+
+    /* Cleanup */
+    CleanupThread(&st->thread_Pulse_ID);
     cleanup_progress_bar(st->progressbar);
-    ActivationButton(user_data);
-    
+    ActivationButton(st);
+
     return NULL;
 }
+
 
 gchar *selection_fichier(st_widgets *st)
 {
@@ -504,348 +676,405 @@ gchar *selection_repertoire(st_widgets *st)
     g_object_unref(native);
 
     return buffer;
-} 
+}
+
 void selection_file_function(GtkWidget *bouton, st_widgets *st)
 {
-    pthread_t thread;
-
+    /* Récupération du Fichier Path */
     st->scanPath = selection_fichier(st);
-    if(st->scanPath == NULL)
+    if(!st->scanPath)
     {
         return;
     }
-
+    
+    /* Changement de la page */
     gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
 
-    st->threadID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);    
-    pthread_create(&thread, NULL, worker_scan, (void*) st);
+    /* Initialisation */
+    initAllDone(st);
 
+    /* Preparation UI */
+    cleanup_progress_bar(st->progressbar);
+    clear_textView(st->textview);
+    ActivationButton(st);
+    
+    /* Lancement du thread pulse */
+    st->thread_Pulse_ID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);
+    if (st->thread_Pulse_ID == 0)
+    {
+        g_error("Erreur lors de la création de la thread\n");
+        return;
+    }
+
+    /* Lancement du thread worker_scan*/
+    GThread *thread_scan = g_thread_new("worker-scan", (GThreadFunc)worker_scan, (void *)st);
+    if(!thread_scan)
+    {
+        g_error("Erreur lors de la création de la thread\n");
+        return;
+    }
+    
+    /* Lancement du thread check_thread_scan */
+    st->thread_Scan_ID = g_timeout_add(100, (GSourceFunc)check_thread_scan, st);
+    if (st->thread_Scan_ID == 0)
+    {
+        g_error("Erreur lors de la création de la thread\n");
+        return;
+    }
+    
+    /* Lancement du thread check_thread_completion */
+    GThread *thread_completion = g_thread_new("worker_completion", (GThreadFunc)worker_completion, (void *)st);
+    if(!thread_completion)
+    {
+        g_error("Erreur lors de la création de la thread\n");
+        return;
+    }
+    
     return;
 }
 
 void selection_folder_function(GtkWidget *button, st_widgets *st)
 {
-    pthread_t thread;
-
+    /* Récupération du Fichier Path */
     st->scanPath = selection_repertoire(st);
-    if(st->scanPath == NULL)
+    if(!st->scanPath)
     {
         return;
     }
 
+    /* Changement de la page */
     gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
-    
-    st->threadID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);
-    pthread_create(&thread, NULL, worker_scan, (void*) st);
 
+    /* Initialisation */
+    initAllDone(st);
+
+    /* Preparation UI */
+    cleanup_progress_bar(st->progressbar);
+    clear_textView(st->textview);
+    ActivationButton(st);
+    
+    /* Lancement du thread pulse */
+    st->thread_Pulse_ID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);
+    if (st->thread_Pulse_ID == 0)
+    {
+        g_error("Erreur lors de la création de la thread\n");
+        return;
+    }
+
+    /* Lancement du thread worker_scan*/
+    GThread *thread_scan = g_thread_new("worker-scan", (GThreadFunc)worker_scan, (void *)st);
+    if(!thread_scan)
+    {
+        g_error("Erreur lors de la création de la thread\n");
+        return;
+    }
+    
+    /* Lancement du thread check_thread_scan */
+    st->thread_Scan_ID = g_timeout_add(100, (GSourceFunc)check_thread_scan, st);
+    if (st->thread_Scan_ID == 0)
+    {
+        g_error("Erreur lors de la création de la thread\n");
+        return;
+    }
+    
+    /* Lancement du thread check_thread_completion */
+    GThread *thread_completion = g_thread_new("worker_completion", (GThreadFunc)worker_completion, (void *)st);
+    if(!thread_completion)
+    {
+        g_error("Erreur lors de la création de la thread\n");
+        return;
+    }
+    
     return;
 }
 
-void update_function(GtkWidget *bouton,st_widgets *st)
+void update_function(GtkWidget *bouton, st_widgets *st)
 {
-    pthread_t thread;
-
+    /* Changement de la page */
     gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
-        
-    st->threadID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);
-    pthread_create(&thread, NULL, worker_update, (void*) st);
+
+    /* Initialisation */
+    initAllDone(st);
+
+    /* Preparation UI */
+    cleanup_progress_bar(st->progressbar);
+    clear_textView(st->textview);
+    ActivationButton(st);
+
+     /* Lancement du thread pulse */
+    st->thread_Pulse_ID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);
+    if (st->thread_Pulse_ID == 0)
+    {
+        g_error("Erreur lors de la création de la thread\n");
+        return;
+    }
+
+    /* Lancement du thread worker_update*/
+    GThread *thread_update = g_thread_new("worker-update", (GThreadFunc)worker_update, (void *)st);
+    if(!thread_update)
+    {
+        g_error("Erreur lors de la création de la thread\n");
+        return;
+    }
 
     return;
 }
 
 void scan_cmd(st_widgets *st)
 {
-    pthread_t thread;
-    
+    if(!st->scanPath)
+    {
+        return;
+    }
+
+    /* Changement de la page */
     gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
+
+    /* Initialisation */
+    initAllDone(st);
+
+    /* Preparation UI */
+    cleanup_progress_bar(st->progressbar);
+    clear_textView(st->textview);
+    ActivationButton(st);
     
-    st->threadID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);
-    pthread_create(&thread, NULL, worker_scan, (void*) st);
+    /* Lancement du thread pulse */
+    st->thread_Pulse_ID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);
+    if (st->thread_Pulse_ID == 0)
+    {
+        g_error("Erreur lors de la création de la thread\n");
+        return;
+    }
+
+    /* Lancement du thread worker_scan*/
+    GThread *thread_scan = g_thread_new("worker-scan", (GThreadFunc)worker_scan, (void *)st);
+    if(!thread_scan)
+    {
+        g_error("Erreur lors de la création de la thread\n");
+        return;
+    }
+    
+    /* Lancement du thread check_thread_scan */
+    st->thread_Scan_ID = g_timeout_add(100, (GSourceFunc)check_thread_scan, st);
+    if (st->thread_Scan_ID == 0)
+    {
+        g_error("Erreur lors de la création de la thread\n");
+        return;
+    }
+    
+    /* Lancement du thread check_thread_completion */
+    GThread *thread_completion = g_thread_new("worker_completion", (GThreadFunc)worker_completion, (void *)st);
+    if(!thread_completion)
+    {
+        g_error("Erreur lors de la création de la thread\n");
+        return;
+    }
     
     return;
 }
 
-int check_remove(const char *filePath)
+gboolean removeVirus(const gchar *filepath)
 {
-    if((remove(filePath)) == 0)
+    if (!filepath)
     {
-        return 0;
+        return FALSE;
+    }
+
+    if (!g_file_test(filepath, G_FILE_TEST_EXISTS))
+    {
+        return FALSE;
+    }
+
+    if (remove(filepath) == 0)
+    {
+        return TRUE;
     }
     else
     {
-        gchar *tmp = NULL;
-        
-        if(!(tmp = g_strdup_printf("%s rm \"%s\"", CMD_DEL, filePath)))
+        /* Tentative de suppression avec une commande */
+        gchar *cmd = g_strdup_printf("%s \"%s\"", CMD_DEL, filepath);
+        if (!cmd)
         {
-            return -1;
-        }
-        
-        if(system(tmp) == -1)
-        {
-            g_free(tmp);
-            return -1;
+            g_critical("Échec d'allocation mémoire pour la commande de suppression.");
+            return FALSE;
         }
 
-        g_free(tmp);
+        int ret = system(cmd);
+        g_free(cmd);
+
+        if (ret != 0)
+        {
+            g_warning("Échec de suppression du fichier '%s' avec la commande.", filepath);
+            return FALSE;
+        }
     }
 
-    return 0;
-
+    return TRUE;
 }
 
-void supression_fonction(GtkWidget *widget, st_widgets *st)
+VirusData* createVirusData(const char* virusName, const char* filepath, const char* fileName, GtkWidget *virusTitre)
 {
-    const gchar *tmp = NULL;
-    char buffer[BUFFER_SIZE];
+    VirusData* data = (VirusData*)malloc(sizeof(VirusData));
+    if (data == NULL)
+    {
+        g_error("Allocation mémoire impossible");
+        return NULL;
+    }
 
+    /* Initialisation des champs avec strncpy pour éviter les débordements */ 
+    strncpy(data->virusName, virusName, BUFFER_SIZE - 1);
+    data->virusName[BUFFER_SIZE - 1] = '\0';
+
+    strncpy(data->filepath, filepath, BUFFER_SIZE - 1);
+    data->filepath[BUFFER_SIZE - 1] = '\0';
+
+    strncpy(data->fileName, fileName, BUFFER_SIZE - 1);
+    data->fileName[BUFFER_SIZE - 1] = '\0';
+
+    data->virusTitre = virusTitre;
+
+    return data;
+}
+
+void freeVirusData(VirusData* data)
+{
+    free(data);
+}
+
+void supression_fonction(GtkWidget *widget, VirusData *virus)
+{
+    if(!removeVirus(virus->filepath))
+    {
+        g_error("Suppression Impossible %s\n", virus->filepath);
+    }
+    
     GtkWidget *parent = gtk_widget_get_parent(widget);
     if(parent)
     {
-        if(!(tmp = gtk_widget_get_name(widget)))
-        {
-            return;
-        }
         gtk_widget_destroy(parent);
     }
-    
-    if((get_virus_data(buffer, tmp)) != 0)
-    {
-        return;
-    }
-    
-    check_remove(buffer);
 
-    if(st->virusNb != 0)
+    virusDetection--;
+    if(virusDetection == 0)
     {
-        st->virusNb--;
+        gtk_widget_destroy(virus->virusTitre);
+        virusDetection = -1;
     }
 
-    if(st->virusNb == 0)
-    {
-        ActivationButton(st);
-        gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 0);
-    }
+    freeVirusData(virus);
 }
 
-void validation_fonction(GtkWidget *widget, st_widgets *st)
+void validation_fonction(GtkWidget *widget, VirusData *virus)
 {
-    const gchar *tmp = NULL;
-    char buffer[BUFFER_SIZE];
-
     GtkWidget *parent = gtk_widget_get_parent(widget);
     if(parent)
     {
-        if(!(tmp = gtk_widget_get_name(widget)))
-        {
-            return;
-        }
         gtk_widget_destroy(parent);
     }
-    
-    if((get_virus_data(buffer, tmp)) != 0)
+
+    virusDetection--;
+    if(virusDetection == 0)
     {
-        return;
+        gtk_widget_destroy(virus->virusTitre);
+        virusDetection = -1;
     }
 
-    if(st->virusNb != 0)
-    {
-        st->virusNb--;
-    }
-
-    if(st->virusNb == 0)
-    {
-        ActivationButton(st);
-        gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 0);
-    }
+    freeVirusData(virus);
 }
 
-int store_virus_data(const char *filepath, const char *filename)
+GtkWidget *createVirusTitre(void)
 {
-    gchar *tmp = NULL;
-    
-    if (!(tmp = g_strdup_printf("%s/%s/TMP_%s.ZxvirusxZ", getenv("HOME"), CLAMGTK_CONF, filename)))
-    {
-        return -1;
-    }
-
-    FILE *fichier = NULL;
-
-    fichier = fopen(tmp, "w+");
-
-    if(!fichier)
-    {
-        g_free(tmp);
-        return -1;
-    }
-
-    fprintf(fichier, "%s", filepath);
-
-    fclose(fichier);
-
-    g_free(tmp);
-
-    return 0;
-}
-
-int get_virus_data(char *dest, const char *filename)
-{
-    gchar *tmp = NULL;
-    char buffer[BUFFER_SIZE];
-    
-    if (!(tmp = g_strdup_printf("%s/%s/TMP_%s.ZxvirusxZ", getenv("HOME"), CLAMGTK_CONF, filename)))
-    {
-        return -1;
-    }
-
-    FILE *fichier = NULL;
-
-    fichier = fopen(tmp, "r");
-
-    if(!fichier)
-    {
-        g_free(tmp);
-        return -1;
-    }
-    
-    if(!(fgets(buffer, BUFFER_SIZE, fichier)))
-    {
-        g_free(tmp);
-        fclose(fichier);
-        return -1;
-    }
-
-    fclose(fichier);
-    if((remove(tmp) != 0))
-    {
-        fprintf(stderr, "Suppression impossible %s\n", tmp);
-    }
-    g_free(tmp);
-
-    strncpy(dest, buffer, BUFFER_SIZE);
-
-    return 0;
-}
-
-void add_virus_elements(st_widgets *st, int nombre)
-{
-    gchar *base = NULL;
-    gchar *tmp = NULL;
-
-    if(!(base = g_path_get_basename(st->st_virus->pv.VirusPath)))
-    {
-        return;
-    }
-
-    if(!(tmp = g_strdup_printf("%d", nombre)))
-    {
-        g_free(base);
-        return;
-    }
-    
-
+    /* Box */
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-    GtkWidget *label_fichier    = gtk_label_new_with_markup(base, 3);
-    GtkWidget *label_virus      = gtk_label_new_with_markup(st->st_virus->pv.virusName, 4);
-    
-    GtkWidget *button_del   = gtk_button_new_with_image(IMAGE_BT_DEL);
-    GtkWidget *button_valid = gtk_button_new_with_image(IMAGE_BT_VALID);
 
-    gtk_widget_set_name(button_del, tmp);
-    gtk_widget_set_name(button_valid, tmp);
-    if((store_virus_data(st->st_virus->pv.VirusPath, tmp) != 0))
-    {
-       return;
-    }
+    /* Label */
+    GtkWidget *label = gtk_label_new_with_markup(MSG_VIRUS, 0);
+
+    /* Add in Box */
+    gtk_box_pack_start(GTK_BOX(box), label, TRUE, FALSE, 0);
+
+    /* Show */
+    gtk_widget_show_all(box);
     
+    return box;
+}
+
+void add_virus_elements(st_widgets *st, int nombre, VirusData *virus)
+{
+    gchar *indexStr = g_strdup_printf("%d", nombre);
+    if (!indexStr) {
+        g_error("Allocation mémoire impossible");
+        return;
+    }
+
+    /* Box */
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+
+    /* label */
+    GtkWidget *label_fichier    = gtk_label_new_with_markup(virus->fileName, 2);
+    GtkWidget *label_virus      = gtk_label_new_with_markup(virus->virusName, 3);
+
+    /* Button */
+    GtkWidget *button_del = gtk_button_new_with_image(IMAGE_BT_DEL);
+    GtkWidget *button_valid = gtk_button_new_with_image(IMAGE_BT_VALID);
+    
+    /* Name */
+    gtk_widget_set_name(button_del, indexStr);
+    gtk_widget_set_name(button_valid, indexStr);
+
+    /* Add in box */
     gtk_box_pack_start(GTK_BOX(box), label_fichier, TRUE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(box), label_virus, TRUE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(box), button_del, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(box), button_valid, FALSE, FALSE, 0);
 
+    /* Add Title */
+    if(nombre == 0)
+    {
+        gtk_box_pack_start(GTK_BOX(st->box_objets), virus->virusTitre, FALSE, FALSE, 0);
+    }
     gtk_box_pack_start(GTK_BOX(st->box_objets), box, FALSE, FALSE, 0);
 
-    g_signal_connect(button_del, "clicked", G_CALLBACK(supression_fonction), st);
-    g_signal_connect(button_valid, "clicked", G_CALLBACK(validation_fonction), st);
+    /* Signals */
+    g_signal_connect(button_del, "clicked", G_CALLBACK(supression_fonction), virus);
+    g_signal_connect(button_valid, "clicked", G_CALLBACK(validation_fonction), virus);
 
+    /* Show */
     gtk_widget_show_all(box);
-    g_free(base);
-    g_free(tmp);
-}
 
-void add_virus_titre(st_widgets *st)
-{
-    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-    GtkWidget *label = gtk_label_new_with_markup(MSG_VIRUS, 0);
-    
-    gtk_box_pack_start(GTK_BOX(box), label, TRUE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(st->box_objets), box, FALSE, FALSE, 0);
-
-    gtk_widget_show_all(box);
+    /* Cleanup */
+    g_free(indexStr);
 }
 
 void check_virus_detected(st_widgets *st)
 {
-    if(st->virusNb == 0)
+    if (is_empty_stack(st->scanItem))
     {
-        ActivationButton(st);
         return;
     }
-
-    int compteur = 0;
-    if(st->cmd_satus == 1)
+    
+    /* Title */
+    GtkWidget *virusTitre = createVirusTitre();
+    
+    StackElement *current = st->scanItem;
+    
+    while (current)
     {
-        gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 1);
-    }
-    else
-    {
-        gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 3);
-    }
-    add_virus_titre(st);
-
-    while(compteur != st->virusNb)
-    {
-        add_virus_elements(st, compteur);
-        st->st_virus = pop_stack(st->st_virus);
-        compteur++;
-    }
-}
-
-int directory_exists(const char *path)
-{
-    struct stat info;
-
-    if (stat(path, &info) != 0)
-    {
-        return -1;
-    }
-    else if (info.st_mode & S_IFDIR)
-    {
-        return 0;
-    }
-    else
-    {
-        return -1;
-    }
-}
-
-int check_conf_folder(void)
-{
-    gchar *buffer = NULL;
-
-    if (!(buffer = g_strdup_printf("%s/%s", getenv("HOME"), CLAMGTK_CONF)))
-    {
-        return -1;
-    }
-
-    if(directory_exists(buffer) != 0)
-    {
-        if((mkdir(buffer, 0755)) != 0)
+        if (!current->item.isClean)
         {
-            return -1;
+            VirusData* virus = createVirusData(current->item.virusName, current->item.filepath, current->item.fileName, virusTitre);
+            if (!virus)
+            {
+                g_error("Allocation mémoire impossible");
+                return;
+            }
+            
+            add_virus_elements(st, virusDetection, virus);
+            virusDetection++;
         }
+        current = current->next;
     }
 
-    g_free(buffer);
-
-    return 0;
+    /* Mise à jour de la page du notebook en fonction de cmd_status */
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), (st->cmd_satus == 1) ? 1 : 3);
 }

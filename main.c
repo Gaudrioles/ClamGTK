@@ -13,11 +13,6 @@ int main (int argc, char *argv[])
     st_widgets *st =  NULL;
     gboolean cmd = FALSE;
 
-    if(check_conf_folder() != 0)
-    {
-        return -1;
-    }
-
     if(!(st = g_malloc(sizeof(st_widgets))))
     {
         return -1;
@@ -35,17 +30,23 @@ int main (int argc, char *argv[])
         }
         argc = 1;
     }
-
-    st->st_virus = new_stack();
-    st->virusNb = 0;
-    st->application = gtk_application_new(CLAMGTK_APP, G_APPLICATION_DEFAULT_FLAGS); /*G_APPLICATION_FLAGS_NONE*/ /*G_APPLICATION_DEFAULT_FLAGS*/
-
+    
+    st->thread_Pulse_ID     = 0;
+    st->thread_Progress_ID  = 0;
+    st->thread_Scan_ID      = 0;
+    st->cmd_satus           = 0;
+    st->scanItem            = new_stack();
+    st->application         = gtk_application_new(CLAMGTK_APP, G_APPLICATION_DEFAULT_FLAGS); /*G_APPLICATION_FLAGS_NONE*/ /*G_APPLICATION_DEFAULT_FLAGS*/
+    
     g_application_register(G_APPLICATION(st->application), NULL, NULL);
 
     if(g_application_get_is_remote(G_APPLICATION(st->application)))
     {
-        st->st_virus = clear_stack(st->st_virus);
-        g_free(st);
+        st->scanItem = clear_stack(st->scanItem);
+        if(st)
+        {
+            g_free(st);
+        }
         int ret = system(MSG_RUN);
         return ret;
     }
@@ -62,8 +63,11 @@ int main (int argc, char *argv[])
     status = g_application_run(G_APPLICATION(st->application), argc, argv);
     
     g_object_unref(st->application);
-    st->st_virus = clear_stack(st->st_virus);
-    g_free(st);
+
+    if(st)
+    {
+        g_free(st);
+    }
     
     return status;
 }

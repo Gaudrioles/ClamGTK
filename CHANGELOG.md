@@ -15,3 +15,5 @@ BUILD 1.3
 -*- Add -*- Ajout Fonction supression virus;
 BUILD 1.4
 -*- Add -*- Ajout Verif already instance;
+BUILD 1.5
+-*- Add -*- Nettoyage du code;
