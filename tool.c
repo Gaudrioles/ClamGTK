@@ -42,20 +42,3 @@ void compteRepertoire(const gchar *repertoire, gint *NombreElement)
 
     g_dir_close(dir);
 }
-
-gboolean check_if_clean(const gchar *src)
-{
-    gchar *result_clean = g_strstr_len(src, -1, ": OK");    /* File: OK */
-    gchar *result_virus = g_strstr_len(src, -1, "FOUND");   /* File: Win.Test.EICAR_HDB-1 FOUND */
-
-    if (result_clean)
-    {
-        return TRUE;
-    }
-    else if (result_virus)
-    {
-        return FALSE;
-    }
-
-    return TRUE;
-}

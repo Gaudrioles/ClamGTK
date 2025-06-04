@@ -6,13 +6,14 @@
 #include "gui.h"
 #include "fonction.h"
 #include "stack.h"
+#include "resource.h"
 
 int main (int argc, char *argv[])
 {
-    int status;
-    st_widgets *st =  NULL;
+    int status = 0;
+    st_widgets *st = NULL;
     gboolean cmd = FALSE;
-
+    
     if(!(st = g_malloc(sizeof(st_widgets))))
     {
         return -1;
@@ -20,6 +21,7 @@ int main (int argc, char *argv[])
 
     if(argc > 1)
     {
+        
         if(argc > 2)
         {
             if(strcmp(argv[1], "-scan") == 0)
@@ -28,6 +30,16 @@ int main (int argc, char *argv[])
                 cmd = TRUE;
             }
         }
+        else if(strcmp(argv[1], "-version") == 0)
+        {
+            fprintf(stdout, "%s version %s\n", APP_NAME, APP_VERSION);
+            if(st)
+            {
+                g_free(st);
+            }
+            return status;
+        }
+
         argc = 1;
     }
     

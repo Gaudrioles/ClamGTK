@@ -18,7 +18,6 @@
 #define UPDATE_OK       "up-to-date"
 #define UPDATE_KO       "updated"
 
-/*
 #define IMAGE_CLAMAV    "/usr/share/ClamGTK/clamav.png"
 #define IMAGE_BT_SEARCH "/usr/share/ClamGTK/search.png"
 #define IMAGE_BT_UPDATE "/usr/share/ClamGTK/update.png"
@@ -28,8 +27,8 @@
 #define IMAGE_BT_DEL    "/usr/share/ClamGTK/del.png"
 #define IMAGE_ICON      "clamav"
 #define CLAMGTK_APP     "ClamGTK.app"
-*/
 
+/*
 #define IMAGE_CLAMAV    "DATA/clamav.png"
 #define IMAGE_BT_SEARCH "DATA/search.png"
 #define IMAGE_BT_UPDATE "DATA/update.png"
@@ -39,7 +38,7 @@
 #define IMAGE_BT_DEL    "DATA/del.png"
 #define IMAGE_ICON      "clamav"
 #define CLAMGTK_APP     "ClamGTK.app"
-
+*/
 
 
 #define CMD_FRESHCLAN   "pkexec sh -c \"systemctl stop clamav-freshclam && freshclam && systemctl start clamav-freshclam\""
@@ -48,7 +47,7 @@
 typedef struct detection
 {
     char *virusName;
-    char *filepath;    
+    char *filepath;
     gchar *fileName;
     gboolean isClean;
 }Detection;
