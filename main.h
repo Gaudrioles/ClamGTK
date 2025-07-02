@@ -9,9 +9,10 @@
 
 #define MSG_COMPILE     "\n----------- Compilation des Signatures en cours -----------\n"
 #define MSG_SCAN        "\n----------- Analyse en cours -----------\n"
-#define MSG_SCAN_F      "\n----------- Analyse en Terminée -----------\n"
-#define MSG_UPDATE      "\n\n----------- ClamAV Mise à jours -----------\n\n"
-#define MSG_UPDATE_F    "\n\n----------- ClamAV Terminée -----------\n\n"
+#define MSG_SCAN_F      "\n----------- Analyse Terminée -----------\n"
+#define MSG_EMPTY       "\n----------- Aucun élément à analyser -----------\n"
+#define MSG_UPDATE      "\n\n----------- Mise à jours -----------\n\n"
+#define MSG_UPDATE_F    "\n\n----------- Mise à jours Terminée -----------\n\n"
 #define MSG_VIRUS       "Fichier dangereux identifié\nsupprimer ou conserver ?\n"
 #define MSG_RUN         "zenity --warning --title \"ClamGTK\" --width 200 --height 100 --text \"ClamGTK already running\""
 

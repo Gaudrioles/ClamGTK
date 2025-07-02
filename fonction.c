@@ -453,6 +453,17 @@ void *worker_scan(void *user_data)
 
     /* Compter nombre d'éléments dans le répertoire */
     compteRepertoire(st->scanPath, &NombreElement);
+    if(NombreElement == 0)
+    {
+        /* Affichage du message */
+        add_text_textview(st->textBuffer, MSG_EMPTY, 0);
+
+        /* Clean up */
+        st->compileDone = TRUE;
+        st->scanDone = TRUE;
+
+        return NULL;
+    }
     
     /* Construction clamscan commande */
     command = g_strdup_printf("clamscan --stdout -r \"%s\"", st->scanPath);
@@ -1043,6 +1054,7 @@ void check_virus_detected(st_widgets *st)
 {
     if (is_empty_stack(st->scanItem))
     {
+        virusDetection = -1;
         return;
     }
     
