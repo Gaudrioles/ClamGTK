@@ -100,7 +100,7 @@ Comment[zh_CN]=扫描威胁...
 Comment[zh_TW]=掃描威脅...
 TryExec=ClamGTK
 Exec=ClamGTK %F
-Icon=clamav
+Icon=Icon=/usr/share/ClamGTK/clamav_icon.png
 Type=Application
 Terminal=false
 Categories=GTK;GNOME;Utility;

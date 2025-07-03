@@ -17,3 +17,5 @@ BUILD 1.4
 -*- Add -*- Ajout Verif already instance;
 BUILD 1.5
 -*- Add -*- Nettoyage du code;
+BUILD 1.6
+-*- Add -*- Ajout clamav_icon.png;
