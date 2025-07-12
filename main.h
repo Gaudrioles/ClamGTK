@@ -26,7 +26,7 @@
 #define IMAGE_BT_FOLDER "/usr/share/ClamGTK/folder.png"
 #define IMAGE_BT_VALID  "/usr/share/ClamGTK/valid.png"
 #define IMAGE_BT_DEL    "/usr/share/ClamGTK/del.png"
-#define IMAGE_ICON      "clamav"
+#define IMAGE_ICON      "/usr/share/ClamGTK/clamav_icon.png"
 #define CLAMGTK_APP     "ClamGTK.app"
 
 /*
@@ -37,7 +37,7 @@
 #define IMAGE_BT_FOLDER "DATA/folder.png"
 #define IMAGE_BT_VALID  "DATA/valid.png"
 #define IMAGE_BT_DEL    "DATA/del.png"
-#define IMAGE_ICON      "clamav"
+#define IMAGE_ICON      "DATA/clamav_icon.png"
 #define CLAMGTK_APP     "ClamGTK.app"
 */
 
