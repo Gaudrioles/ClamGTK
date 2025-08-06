@@ -19,7 +19,7 @@
 
 #define CLAMGTK_APP     "ClamGTK.app"
 
-#define CMD_FRESHCLAN   "pkexec bash \"/usr/share/ClamGTK/update.sh\""
+#define CMD_FRESHCLAN   "pkexec clamgtk_update"
 #define CMD_DEL         "pkexec rm"
 
 #define UI_ANALYSE      "Analyse"

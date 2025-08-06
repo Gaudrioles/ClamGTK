@@ -176,7 +176,7 @@ static gboolean display_scanItem(DispatchDataVirus *data)
     gtk_text_buffer_get_end_iter(data->buffer, &end);
 
     /* Truncation +30 */
-    char filename_trunc[31];
+    char filename_trunc[31] = {0};
     g_strlcpy(filename_trunc, data->scanItem->item.fileName, sizeof(filename_trunc));
 
     /* Markup */
@@ -221,14 +221,23 @@ static gboolean display_updateItem(DispatchDataUpdate *data)
     /* Get iter position */
     gtk_text_buffer_get_end_iter(data->buffer, &end);
 
+    /* Truncation +30 */
+    char database_trunc[17] = {0};
+    char sigs_trunc[21] = {0};
+    char version_trunc[21] = {0};
+    
+    g_strlcpy(database_trunc, data->database, sizeof(database_trunc));
+    g_strlcpy(sigs_trunc, data->sigs, sizeof(sigs_trunc));
+    g_strlcpy(version_trunc, data->version, sizeof(version_trunc));
+    
     /* Markup */
     if (data->upToDate)
     {
-        buffer = g_strdup_printf("<span foreground=\"white\" font_size=\"medium\" font_family=\"Ubuntu\"><b>DataBase :%-25s  Signature :%-25s</b></span>\t :" "<span foreground=\"green\" font_size=\"medium\" font_family=\"Ubuntu\"><b>Version :%-25s\n</b></span>", data->database, data->sigs, data->version);
+        buffer = g_strdup_printf("<span foreground=\"white\" font_size=\"medium\" font_family=\"Monospace\"><b>\t%-16s Sigs :%-10s</b></span>" "<span foreground=\"green\" font_size=\"medium\" font_family=\"Monospace\"><b>%-10s\n</b></span>", database_trunc, sigs_trunc, version_trunc);
     }
     else
     {
-        buffer = g_strdup_printf("<span foreground=\"white\" font_size=\"medium\" font_family=\"Ubuntu\"><b>DataBase :%-25s  Signature :%-25s</b></span>\t :" "<span foreground=\"orange\" font_size=\"medium\" font_family=\"Ubuntu\"><b>Version :%-25s\n</b></span>", data->database, data->sigs, data->version);
+        buffer = g_strdup_printf("<span foreground=\"white\" font_size=\"medium\" font_family=\"Monospace\"><b>\t%-16s Sigs :%-10s</b></span>" "<span foreground=\"orange\" font_size=\"medium\" font_family=\"Monospace\"><b>%-10s\n</b></span>", database_trunc, sigs_trunc, version_trunc);
     }
 
     if (!buffer)
