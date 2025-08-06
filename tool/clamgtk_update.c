@@ -48,14 +48,12 @@ bool enableFreshClamService(void)
 
 int main(void)
 {
-    // Exécute correctement les fonctions (avec parenthèses !)
     if (!disableFreshClamService())
     {
         fprintf(stderr, "Erreur : impossible d'arrêter freshclam.\n");
         return 1;
     }
 
-    // Attend que worker termine, car c'est un appel bloquant
     if (!worker())
     {
         fprintf(stderr, "Erreur lors de l'exécution de freshclam.\n");
