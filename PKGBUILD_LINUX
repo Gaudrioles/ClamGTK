@@ -14,9 +14,7 @@ pkgver=$version
 package() {
 	# Install Bin
 	install -D -m755 "../ClamGTK" "${pkgdir}/usr/bin/ClamGTK"
-	install -D -m755 "../../DATA/clamav.png" "${pkgdir}/usr/share/ClamGTK/clamav.png"
-	install -D -m755 "../../DATA/search.png" "${pkgdir}/usr/share/ClamGTK/search.png"
-	install -D -m755 "../../DATA/update.png" "${pkgdir}/usr/share/ClamGTK/update.png"
-	install -D -m755 "../../DATA/file.png" "${pkgdir}/usr/share/ClamGTK/file.png"
-	install -D -m755 "../../DATA/folder.png" "${pkgdir}/usr/share/ClamGTK/folder.png"
+	install -D -m755 "../../tool/clamgtk_update" "${pkgdir}/usr/bin/clamgtk_update"
+	install -D -m755 "../../DATA/clamav.svg" "${pkgdir}/usr/share/ClamGTK/clamav.svg"
+	install -D -m755 "../../DATA/clamgtk.desktop" "${pkgdir}/usr/share/applications/clamgtk.desktop"
 }
