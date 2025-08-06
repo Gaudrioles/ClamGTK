@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <regex.h>
 
-#include "main.h"
+#include "../common.h"
 
 /* Supprimer un élément dans une chaine */
 void strcut(char *source, const char *supp)
@@ -182,4 +182,111 @@ gboolean extractData(const char *input, int regexSelect, ExtractedData *result)
 
     regfree(&regex);
     return TRUE;
+}
+
+char *extract_version(const char *input)
+{
+    char *copy = strdup(input);
+    char *slash = strchr(copy, '/');
+    if (slash)
+    {
+        *slash = '\0';
+    }
+
+    return copy;
+}
+
+gchar *extract_db_version(const char *input)
+{
+    char buffer[BUFFER_SIZE] = {0};
+    const char *first_slash = strchr(input, '/');
+    if (!first_slash)
+    {
+        return NULL;
+    }
+
+    const char *second_slash = strchr(first_slash + 1, '/');
+    if (!second_slash)
+    {
+        return NULL;
+    }
+
+    size_t len = second_slash - (first_slash + 1);
+    strncpy(buffer, first_slash + 1, len);
+    buffer[len] = '\0';
+    
+    return g_strdup_printf("%s :\t%s", UI_DB, buffer);
+}
+
+gchar *extract_date(const char *input)
+{
+    const char *last_slash = strrchr(input, '/');
+    if (!last_slash)
+    {
+        return NULL;
+    }
+
+    /* On saute le début */
+    const char *start = strchr(last_slash + 1, ' ');
+    if (!start) return NULL;
+    start++;
+
+    char short_month[4], day[3], hour[9], year[5];
+    if (sscanf(start, "%3s %2s %8s %4s", short_month, day, hour, year) != 4)
+        return NULL;
+
+    /* Correspondance des mois */
+    const char *short_names[] = {
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    };
+    const char *full_names[] = {
+        "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Decembre"
+    };
+
+    const char *full_month = NULL;
+    for (int i = 0; i < 12; i++)
+    {
+        if (strcmp(short_month, short_names[i]) == 0)
+        {
+            full_month = full_names[i];
+            break;
+        }
+    }
+
+    if (!full_month)
+    {
+        return NULL;
+    }
+    
+    return g_strdup_printf("%s :\t%s %s %s", UI_DATE, day, full_month, year);
+}
+
+char *getClamscanVersion(void)
+{
+    char *result = NULL;
+    FILE *fichier = NULL;
+    
+    /* Process Update */
+    fichier = popen("clamscan --version", "r");
+    if (!fichier)
+    {
+        return NULL;
+    }
+
+    char output[1024];
+    
+    if (fgets(output, sizeof(output), fichier))
+    {
+        // Supprime le retour à la ligne en fin de chaîne, s’il existe
+        output[strcspn(output, "\n")] = '\0';
+
+        result = strdup(output);
+    }
+    
+    /* Fermer le processus */
+    pclose(fichier);
+
+    return result;
 }

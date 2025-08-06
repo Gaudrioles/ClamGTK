@@ -1,7 +1,7 @@
 #ifndef RESOURCE_H_INCLUDED
 #define RESOURCE_H_INCLUDED
 
-#define APP_VERSION "1.6"
+#define APP_VERSION "1.7"
 #define APP_NAME "ClamGTK"
 #define INNOSETUP "FALSE"
 

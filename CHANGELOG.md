@@ -19,3 +19,5 @@ BUILD 1.5
 -*- Add -*- Nettoyage du code;
 BUILD 1.6
 -*- Add -*- Ajout clamav_icon.png;
+BUILD 1.7
+-*- Add -*- Remplacement du theme par libhandy;

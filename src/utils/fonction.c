@@ -1,4 +1,3 @@
-#include <gtk/gtk.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <pthread.h>
@@ -6,36 +5,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "main.h"
+#include "../common.h"
+#include "../stack/stack.h"
 #include "fonction.h"
-#include "stack.h"
 #include "tool.h"
 #include "strtool.h"
 
+
 double fraction = 0.0;
 int virusDetection = 0;
-
-typedef struct DispatchData
-{
-    GtkTextBuffer *buffer;
-    char *output_str;
-    int color;
-} DispatchData;
-
-typedef struct DispatchDataVirus
-{
-    GtkTextBuffer *buffer;
-    Stack scanItem;
-} DispatchDataVirus;
-
-typedef struct DispatchDataUpdate
-{
-    GtkTextBuffer *buffer;
-    char *database;
-    char *sigs;
-    char *version;
-    gboolean upToDate;
-} DispatchDataUpdate;
 
 void CleanupThread(guint *source_id)
 {
@@ -51,18 +29,18 @@ void SetSensitiveButton(GtkWidget *widget)
     gtk_widget_set_sensitive(widget, !gtk_widget_get_sensitive(widget));
 }
 
-void ActivationButton(st_widgets *st)
+void ActivationButton(Application *app)
 {
-    switch(st->cmd_satus)
+    switch(app->cmd_satus)
     {
         case 0:            
-            SetSensitiveButton(st->bouton_retour);
-            SetSensitiveButton(st->bouton_analyser);
-            SetSensitiveButton(st->bouton_update);
+            SetSensitiveButton(app->bouton_retour);
+            SetSensitiveButton(app->bouton_analyser);
+            SetSensitiveButton(app->bouton_update);
             break;
         
         case 1:
-            SetSensitiveButton(st->bouton_retour);
+            SetSensitiveButton(app->bouton_retour);
             break;
         default:
             break;
@@ -71,24 +49,24 @@ void ActivationButton(st_widgets *st)
     return;
 }
 
-void initAllDone(st_widgets *st)
+void initAllDone(Application *app)
 {
-	st->compileDone = FALSE;
-    st->scanDone    = FALSE;
+	app->compileDone = FALSE;
+    app->scanDone    = FALSE;
 }
 
-gboolean virus_traitement(st_widgets *st)
+gboolean virus_traitement(Application *app)
 {
     if (virusDetection == -1)
     {
         /* Déverrouiller les boutons */
-        ActivationButton(st);
+        ActivationButton(app);
 
         /* Changement de la page */
-        gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), (st->cmd_satus == 1) ? 0 : 2);
+        gtk_notebook_set_current_page(GTK_NOTEBOOK(app->notebook), (app->cmd_satus == 1) ? 0 : 2);
         
         /* Nettoyage de la pile */
-        st->scanItem = clear_stack(st->scanItem);
+        app->scanItem = clear_stack(app->scanItem);
         virusDetection = 0;
         return G_SOURCE_REMOVE;
     }
@@ -98,22 +76,22 @@ gboolean virus_traitement(st_widgets *st)
 
 void *worker_completion(void *user_data)
 {
-    st_widgets *st = (st_widgets *)user_data;
+    Application *app = (Application *)user_data;
     
-    while(!st->scanDone)
+    while(!app->scanDone)
     {
         g_usleep(100000);
     }
 
     /* Suppression du thread progressbar */
-    CleanupThread(&st->thread_Progress_ID);
+    CleanupThread(&app->thread_Progress_ID);
 
     /* Temporisation */
     g_usleep(2000000);
 
-    check_virus_detected(st);
+    check_virus_detected(app);
 
-    guint thread_ID = g_timeout_add(100, (GSourceFunc)virus_traitement, st);
+    guint thread_ID = g_timeout_add(100, (GSourceFunc)virus_traitement, app);
     if (thread_ID == 0)
     {
         g_error("Erreur lors de la création de la thread\n");
@@ -123,16 +101,16 @@ void *worker_completion(void *user_data)
     return NULL;
 }
 
-gboolean check_thread_scan(st_widgets *st)
+gboolean check_thread_scan(Application *app)
 {
-    if(st->compileDone)
+    if(app->compileDone)
     {
         /* Suppression du thread pulse progressbar */
-        CleanupThread(&st->thread_Pulse_ID);
+        CleanupThread(&app->thread_Pulse_ID);
         
         /* Création du thread fraction progressbar */
-        st->thread_Progress_ID = g_timeout_add(100, (GSourceFunc)fraction_progressbar, st->progressbar);
-        if (st->thread_Progress_ID == 0)
+        app->thread_Progress_ID = g_timeout_add(100, (GSourceFunc)fraction_progressbar, app->progressbar);
+        if (app->thread_Progress_ID == 0)
         {
             g_error("Erreur lors de la création de la thread\n");
             return G_SOURCE_REMOVE;
@@ -197,14 +175,18 @@ static gboolean display_scanItem(DispatchDataVirus *data)
     /* Get iter position */
     gtk_text_buffer_get_end_iter(data->buffer, &end);
 
+    /* Truncation +30 */
+    char filename_trunc[31];
+    g_strlcpy(filename_trunc, data->scanItem->item.fileName, sizeof(filename_trunc));
+
     /* Markup */
     if (data->scanItem->item.isClean)
     {
-        buffer = g_strdup_printf("<span foreground=\"white\" font_size=\"medium\" font_family=\"Ubuntu\"><b>%s</b></span>\t :" "<span foreground=\"green\" font_size=\"medium\" font_family=\"Ubuntu\"><b>CLEAN\n</b></span>",data->scanItem->item.fileName);
+        buffer = g_strdup_printf("<span foreground=\"white\" font_size=\"medium\" font_family=\"Monospace\"><b>%-30s</b></span>" "<span foreground=\"green\" font_size=\"medium\" font_family=\"Monospace\"><b>CLEAN\n</b></span>",filename_trunc);
     }
     else
     {
-        buffer = g_strdup_printf("<span foreground=\"white\" font_size=\"medium\" font_family=\"Ubuntu\"><b>%s</b></span>\t :" "<span foreground=\"red\" font_size=\"medium\" font_family=\"Ubuntu\"><b>%s\n</b></span>", data->scanItem->item.fileName, data->scanItem->item.virusName);
+        buffer = g_strdup_printf("<span foreground=\"white\" font_size=\"medium\" font_family=\"Monospace\"><b>%-30s</b></span>" "<span foreground=\"red\" font_size=\"medium\" font_family=\"Monospace\"><b>%s\n</b></span>", filename_trunc, data->scanItem->item.virusName);
     }
 
     if (!buffer)
@@ -292,14 +274,14 @@ void cleanup_progress_bar(GtkWidget *progressBar)
     return;
 }
 
-void notebook_set_page_default(GtkWidget *bouton, st_widgets *st)
+void notebook_set_page_default(GtkWidget *bouton, Application *app)
 {
-    gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 0);
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(app->notebook), 0);
 }
 
-void notebook_set_page_analyser(GtkWidget *bouton, st_widgets *st)
+void notebook_set_page_analyser(GtkWidget *bouton, Application *app)
 {
-    gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 1);
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(app->notebook), 1);
 }
 
 void clear_textView(GtkWidget *text_view)
@@ -422,29 +404,36 @@ void space_in_box(GtkWidget *box, int nb)
         GtkWidget *start  = NULL;
         GtkWidget *end  = NULL;
 
-        start = gtk_label_new("");
-        end = gtk_label_new("");
+        start = gtk_label_new(" ");
+        end = gtk_label_new(" ");
         gtk_box_pack_start(GTK_BOX(box), start, FALSE, FALSE, 0);
         gtk_box_pack_end(GTK_BOX(box), end, FALSE, FALSE, 0);
     }
 }
 
-GtkWidget *gtk_button_new_with_image(const char *imageName)
+GtkWidget *gtk_button_new_with_icon(const char *iconName, const char *str)
 {
-    GtkWidget *bouton   = NULL;
-    GtkWidget *image    = NULL;
+    GtkWidget *bouton = gtk_button_new();
 
-    image = gtk_image_new_from_file(imageName);
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
 
-    bouton = gtk_button_new();
-    gtk_button_set_image(GTK_BUTTON(bouton), image);
-    
+    GtkWidget *icon = gtk_image_new_from_icon_name(iconName, GTK_ICON_SIZE_BUTTON);
+    gtk_box_pack_start(GTK_BOX(box), icon, TRUE, TRUE, 2);
+    if(str)
+    {
+        GtkWidget *label = gtk_label_new(str);
+        gtk_box_pack_start(GTK_BOX(box), label, TRUE, TRUE, 2);
+    }
+
+    gtk_container_add(GTK_CONTAINER(bouton), box);
+
     return bouton;
 }
 
+
 void *worker_scan(void *user_data)
 {
-    st_widgets *st = (st_widgets *)user_data;
+    Application *app = (Application *)user_data;
     gchar *command = NULL;
     FILE *fichier = NULL;
     char output[1024];
@@ -452,43 +441,43 @@ void *worker_scan(void *user_data)
     int NombreElement = 0;
 
     /* Compter nombre d'éléments dans le répertoire */
-    compteRepertoire(st->scanPath, &NombreElement);
+    compteRepertoire(app->scanPath, &NombreElement);
     if(NombreElement == 0)
     {
         /* Affichage du message */
-        add_text_textview(st->textBuffer, MSG_EMPTY, 0);
+        add_text_textview(app->textBuffer, MSG_EMPTY, 0);
 
         /* Clean up */
-        st->compileDone = TRUE;
-        st->scanDone = TRUE;
+        app->compileDone = TRUE;
+        app->scanDone = TRUE;
 
         return NULL;
     }
     
     /* Construction clamscan commande */
-    command = g_strdup_printf("clamscan --stdout -r \"%s\"", st->scanPath);
+    command = g_strdup_printf("clamscan --stdout -r \"%s\"", app->scanPath);
     if (!command)
     {
-        add_text_textview(st->textBuffer, "Allocation mémoire impossible", 0);
+        add_text_textview(app->textBuffer, "Allocation mémoire impossible", 0);
         return NULL;
     }
 
     /* Nettoyage scanPath */
-    if (st->scanPath)
+    if (app->scanPath)
     {
-        g_free(st->scanPath);
-        st->scanPath = NULL;
+        g_free(app->scanPath);
+        app->scanPath = NULL;
     }
 
     /* Affichage du message */
-    add_text_textview(st->textBuffer, MSG_COMPILE, 0);
+    add_text_textview(app->textBuffer, MSG_COMPILE, 0);
 
     /* Execution clamscan commande */ 
     fichier = popen(command, "r");
     g_free(command);
     if (!fichier)
     {
-        add_text_textview(st->textBuffer, "Erreur lors de l'exécution de ClamScan", 0);
+        add_text_textview(app->textBuffer, "Erreur lors de l'exécution de ClamScan", 0);
         return NULL;
     }
     
@@ -499,11 +488,11 @@ void *worker_scan(void *user_data)
 
         if (compteur <= NombreElement)
         {
-            if(!st->compileDone)
+            if(!app->compileDone)
             {
                 /* Affichage du message */
-                add_text_textview(st->textBuffer, MSG_SCAN, 0);
-                st->compileDone = TRUE;
+                add_text_textview(app->textBuffer, MSG_SCAN, 0);
+                app->compileDone = TRUE;
             }
 
             char *filePath = getFilePath(output);
@@ -514,10 +503,10 @@ void *worker_scan(void *user_data)
                 {
                     gboolean isClean = checkIfClean(output);
                     char *virusName = isClean ? NULL : getVirusName(output);
-                    st->scanItem = push_stack(st->scanItem, fileName, filePath, virusName, isClean);
+                    app->scanItem = push_stack(app->scanItem, fileName, filePath, virusName, isClean);
 
                     /* Update UI with the scan result */
-                    add_text_textviewVirus(st->textBuffer, st->scanItem);
+                    add_text_textviewVirus(app->textBuffer, app->scanItem);
 
                     g_free(fileName);
                     if (virusName)
@@ -531,7 +520,7 @@ void *worker_scan(void *user_data)
         else
         {
             /* Display other output */
-            add_text_textview(st->textBuffer, output, 0);
+            add_text_textview(app->textBuffer, output, 0);
         }
 
         /* Update the progress bar */
@@ -547,10 +536,10 @@ void *worker_scan(void *user_data)
     pclose(fichier);
 
     /* Affichage du message */
-    add_text_textview(st->textBuffer, MSG_SCAN_F, 0);
+    add_text_textview(app->textBuffer, MSG_SCAN_F, 0);
 
     /* Clean up */
-    st->scanDone = TRUE;
+    app->scanDone = TRUE;
     
     return NULL;
 }
@@ -558,18 +547,18 @@ void *worker_scan(void *user_data)
 void *worker_update(void *user_data)
 {
     int regexSelect = -1;
-    st_widgets *st = (st_widgets *)user_data;
+    Application *app = (Application *)user_data;
     
     /* Process Update */
     FILE *fichier = popen(CMD_FRESHCLAN, "r");
     if (!fichier)
     {
-        add_text_textview(st->textBuffer, "Erreur lors de l'exécution de freshclam !", 0);
+        add_text_textview(app->textBuffer, "Erreur lors de l'exécution de freshclam !", 0);
         return NULL;
     }
 
     /* Affichage du message */
-    add_text_textview(st->textBuffer, MSG_UPDATE, 0);
+    add_text_textview(app->textBuffer, MSG_UPDATE, 0);
 
     char output[1024];
     while (fgets(output, sizeof(output), fichier) != NULL)
@@ -593,7 +582,7 @@ void *worker_update(void *user_data)
         if (extractData(output, regexSelect, &result))
         {
             /* Affichage du texte */
-            add_text_textviewUpdate(st->textBuffer, &result);
+            add_text_textviewUpdate(app->textBuffer, &result);
         }
     }
 
@@ -601,18 +590,18 @@ void *worker_update(void *user_data)
     pclose(fichier);
 
     /* Affichage du message */
-    add_text_textview(st->textBuffer, MSG_UPDATE_F, 0);
+    add_text_textview(app->textBuffer, MSG_UPDATE_F, 0);
 
     /* Cleanup */
-    CleanupThread(&st->thread_Pulse_ID);
-    cleanup_progress_bar(st->progressbar);
-    ActivationButton(st);
+    CleanupThread(&app->thread_Pulse_ID);
+    cleanup_progress_bar(app->progressbar);
+    ActivationButton(app);
 
     return NULL;
 }
 
 
-gchar *selection_fichier(st_widgets *st)
+gchar *selection_fichier(Application *app)
 {
     GtkFileChooserNative *native;
     GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
@@ -620,7 +609,7 @@ gchar *selection_fichier(st_widgets *st)
 
     char *buffer = NULL;
 
-    native = gtk_file_chooser_native_new("Selection du fichier", GTK_WINDOW(st->window), action, "_Analyser", "_Retour");
+    native = gtk_file_chooser_native_new("Selection du fichier", GTK_WINDOW(app->window), action, "_Analyser", "_Retour");
 
     res = gtk_native_dialog_run(GTK_NATIVE_DIALOG(native));
     if (res == GTK_RESPONSE_ACCEPT)
@@ -647,7 +636,7 @@ gchar *selection_fichier(st_widgets *st)
     return buffer;
 }
 
-gchar *selection_repertoire(st_widgets *st)
+gchar *selection_repertoire(Application *app)
 {
     GtkFileChooserNative *native;
     GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
@@ -655,7 +644,7 @@ gchar *selection_repertoire(st_widgets *st)
 
     char *buffer = NULL;
 
-    native = gtk_file_chooser_native_new("Selection du Repertoire", GTK_WINDOW(st->window), action, "_Analyser", "_Retour");
+    native = gtk_file_chooser_native_new("Selection du Repertoire", GTK_WINDOW(app->window), action, "_Analyser", "_Retour");
 
     res = gtk_native_dialog_run(GTK_NATIVE_DIALOG(native));
     if (res == GTK_RESPONSE_ACCEPT)
@@ -682,36 +671,36 @@ gchar *selection_repertoire(st_widgets *st)
     return buffer;
 }
 
-void selection_file_function(GtkWidget *bouton, st_widgets *st)
+void selection_file_function(GtkWidget *bouton, Application *app)
 {
     /* Récupération du Fichier Path */
-    st->scanPath = selection_fichier(st);
-    if(!st->scanPath)
+    app->scanPath = selection_fichier(app);
+    if(!app->scanPath)
     {
         return;
     }
     
     /* Changement de la page */
-    gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(app->notebook), 2);
 
     /* Initialisation */
-    initAllDone(st);
+    initAllDone(app);
 
     /* Preparation UI */
-    cleanup_progress_bar(st->progressbar);
-    clear_textView(st->textview);
-    ActivationButton(st);
+    cleanup_progress_bar(app->progressbar);
+    clear_textView(app->textview);
+    ActivationButton(app);
     
     /* Lancement du thread pulse */
-    st->thread_Pulse_ID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);
-    if (st->thread_Pulse_ID == 0)
+    app->thread_Pulse_ID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, app->progressbar);
+    if (app->thread_Pulse_ID == 0)
     {
         g_error("Erreur lors de la création de la thread\n");
         return;
     }
 
     /* Lancement du thread worker_scan*/
-    GThread *thread_scan = g_thread_new("worker-scan", (GThreadFunc)worker_scan, (void *)st);
+    GThread *thread_scan = g_thread_new("worker-scan", (GThreadFunc)worker_scan, (void *)app);
     if(!thread_scan)
     {
         g_error("Erreur lors de la création de la thread\n");
@@ -719,15 +708,15 @@ void selection_file_function(GtkWidget *bouton, st_widgets *st)
     }
     
     /* Lancement du thread check_thread_scan */
-    st->thread_Scan_ID = g_timeout_add(100, (GSourceFunc)check_thread_scan, st);
-    if (st->thread_Scan_ID == 0)
+    app->thread_Scan_ID = g_timeout_add(100, (GSourceFunc)check_thread_scan, app);
+    if (app->thread_Scan_ID == 0)
     {
         g_error("Erreur lors de la création de la thread\n");
         return;
     }
     
     /* Lancement du thread check_thread_completion */
-    GThread *thread_completion = g_thread_new("worker_completion", (GThreadFunc)worker_completion, (void *)st);
+    GThread *thread_completion = g_thread_new("worker_completion", (GThreadFunc)worker_completion, (void *)app);
     if(!thread_completion)
     {
         g_error("Erreur lors de la création de la thread\n");
@@ -737,36 +726,36 @@ void selection_file_function(GtkWidget *bouton, st_widgets *st)
     return;
 }
 
-void selection_folder_function(GtkWidget *button, st_widgets *st)
+void selection_folder_function(GtkWidget *button, Application *app)
 {
     /* Récupération du Fichier Path */
-    st->scanPath = selection_repertoire(st);
-    if(!st->scanPath)
+    app->scanPath = selection_repertoire(app);
+    if(!app->scanPath)
     {
         return;
     }
 
     /* Changement de la page */
-    gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(app->notebook), 2);
 
     /* Initialisation */
-    initAllDone(st);
+    initAllDone(app);
 
     /* Preparation UI */
-    cleanup_progress_bar(st->progressbar);
-    clear_textView(st->textview);
-    ActivationButton(st);
+    cleanup_progress_bar(app->progressbar);
+    clear_textView(app->textview);
+    ActivationButton(app);
     
     /* Lancement du thread pulse */
-    st->thread_Pulse_ID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);
-    if (st->thread_Pulse_ID == 0)
+    app->thread_Pulse_ID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, app->progressbar);
+    if (app->thread_Pulse_ID == 0)
     {
         g_error("Erreur lors de la création de la thread\n");
         return;
     }
 
     /* Lancement du thread worker_scan*/
-    GThread *thread_scan = g_thread_new("worker-scan", (GThreadFunc)worker_scan, (void *)st);
+    GThread *thread_scan = g_thread_new("worker-scan", (GThreadFunc)worker_scan, (void *)app);
     if(!thread_scan)
     {
         g_error("Erreur lors de la création de la thread\n");
@@ -774,15 +763,15 @@ void selection_folder_function(GtkWidget *button, st_widgets *st)
     }
     
     /* Lancement du thread check_thread_scan */
-    st->thread_Scan_ID = g_timeout_add(100, (GSourceFunc)check_thread_scan, st);
-    if (st->thread_Scan_ID == 0)
+    app->thread_Scan_ID = g_timeout_add(100, (GSourceFunc)check_thread_scan, app);
+    if (app->thread_Scan_ID == 0)
     {
         g_error("Erreur lors de la création de la thread\n");
         return;
     }
     
     /* Lancement du thread check_thread_completion */
-    GThread *thread_completion = g_thread_new("worker_completion", (GThreadFunc)worker_completion, (void *)st);
+    GThread *thread_completion = g_thread_new("worker_completion", (GThreadFunc)worker_completion, (void *)app);
     if(!thread_completion)
     {
         g_error("Erreur lors de la création de la thread\n");
@@ -792,29 +781,29 @@ void selection_folder_function(GtkWidget *button, st_widgets *st)
     return;
 }
 
-void update_function(GtkWidget *bouton, st_widgets *st)
+void update_function(GtkWidget *bouton, Application *app)
 {
     /* Changement de la page */
-    gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(app->notebook), 2);
 
     /* Initialisation */
-    initAllDone(st);
+    initAllDone(app);
 
     /* Preparation UI */
-    cleanup_progress_bar(st->progressbar);
-    clear_textView(st->textview);
-    ActivationButton(st);
+    cleanup_progress_bar(app->progressbar);
+    clear_textView(app->textview);
+    ActivationButton(app);
 
      /* Lancement du thread pulse */
-    st->thread_Pulse_ID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);
-    if (st->thread_Pulse_ID == 0)
+    app->thread_Pulse_ID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, app->progressbar);
+    if (app->thread_Pulse_ID == 0)
     {
         g_error("Erreur lors de la création de la thread\n");
         return;
     }
 
     /* Lancement du thread worker_update*/
-    GThread *thread_update = g_thread_new("worker-update", (GThreadFunc)worker_update, (void *)st);
+    GThread *thread_update = g_thread_new("worker-update", (GThreadFunc)worker_update, (void *)app);
     if(!thread_update)
     {
         g_error("Erreur lors de la création de la thread\n");
@@ -824,34 +813,34 @@ void update_function(GtkWidget *bouton, st_widgets *st)
     return;
 }
 
-void scan_cmd(st_widgets *st)
+void scan_cmd(Application *app)
 {
-    if(!st->scanPath)
+    if(!app->scanPath)
     {
         return;
     }
 
     /* Changement de la page */
-    gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), 2);
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(app->notebook), 2);
 
     /* Initialisation */
-    initAllDone(st);
+    initAllDone(app);
 
     /* Preparation UI */
-    cleanup_progress_bar(st->progressbar);
-    clear_textView(st->textview);
-    ActivationButton(st);
+    cleanup_progress_bar(app->progressbar);
+    clear_textView(app->textview);
+    ActivationButton(app);
     
     /* Lancement du thread pulse */
-    st->thread_Pulse_ID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, st->progressbar);
-    if (st->thread_Pulse_ID == 0)
+    app->thread_Pulse_ID = g_timeout_add(100, (GSourceFunc)pulse_progress_bar, app->progressbar);
+    if (app->thread_Pulse_ID == 0)
     {
         g_error("Erreur lors de la création de la thread\n");
         return;
     }
 
     /* Lancement du thread worker_scan*/
-    GThread *thread_scan = g_thread_new("worker-scan", (GThreadFunc)worker_scan, (void *)st);
+    GThread *thread_scan = g_thread_new("worker-scan", (GThreadFunc)worker_scan, (void *)app);
     if(!thread_scan)
     {
         g_error("Erreur lors de la création de la thread\n");
@@ -859,15 +848,15 @@ void scan_cmd(st_widgets *st)
     }
     
     /* Lancement du thread check_thread_scan */
-    st->thread_Scan_ID = g_timeout_add(100, (GSourceFunc)check_thread_scan, st);
-    if (st->thread_Scan_ID == 0)
+    app->thread_Scan_ID = g_timeout_add(100, (GSourceFunc)check_thread_scan, app);
+    if (app->thread_Scan_ID == 0)
     {
         g_error("Erreur lors de la création de la thread\n");
         return;
     }
     
     /* Lancement du thread check_thread_completion */
-    GThread *thread_completion = g_thread_new("worker_completion", (GThreadFunc)worker_completion, (void *)st);
+    GThread *thread_completion = g_thread_new("worker_completion", (GThreadFunc)worker_completion, (void *)app);
     if(!thread_completion)
     {
         g_error("Erreur lors de la création de la thread\n");
@@ -1003,7 +992,7 @@ GtkWidget *createVirusTitre(void)
     return box;
 }
 
-void add_virus_elements(st_widgets *st, int nombre, VirusData *virus)
+void add_virus_elements(Application *app, int nombre, VirusData *virus)
 {
     gchar *indexStr = g_strdup_printf("%d", nombre);
     if (!indexStr) {
@@ -1019,8 +1008,8 @@ void add_virus_elements(st_widgets *st, int nombre, VirusData *virus)
     GtkWidget *label_virus      = gtk_label_new_with_markup(virus->virusName, 3);
 
     /* Button */
-    GtkWidget *button_del = gtk_button_new_with_image(IMAGE_BT_DEL);
-    GtkWidget *button_valid = gtk_button_new_with_image(IMAGE_BT_VALID);
+    GtkWidget *button_del = gtk_button_new_with_icon("user-trash-symbolic", NULL);
+    GtkWidget *button_valid = gtk_button_new_with_icon("emblem-ok-symbolic", NULL);
     
     /* Name */
     gtk_widget_set_name(button_del, indexStr);
@@ -1035,9 +1024,9 @@ void add_virus_elements(st_widgets *st, int nombre, VirusData *virus)
     /* Add Title */
     if(nombre == 0)
     {
-        gtk_box_pack_start(GTK_BOX(st->box_objets), virus->virusTitre, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(app->box_objets), virus->virusTitre, FALSE, FALSE, 0);
     }
-    gtk_box_pack_start(GTK_BOX(st->box_objets), box, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(app->box_objets), box, FALSE, FALSE, 0);
 
     /* Signals */
     g_signal_connect(button_del, "clicked", G_CALLBACK(supression_fonction), virus);
@@ -1050,9 +1039,9 @@ void add_virus_elements(st_widgets *st, int nombre, VirusData *virus)
     g_free(indexStr);
 }
 
-void check_virus_detected(st_widgets *st)
+void check_virus_detected(Application *app)
 {
-    if (is_empty_stack(st->scanItem))
+    if (is_empty_stack(app->scanItem))
     {
         virusDetection = -1;
         return;
@@ -1061,7 +1050,7 @@ void check_virus_detected(st_widgets *st)
     /* Title */
     GtkWidget *virusTitre = createVirusTitre();
     
-    StackElement *current = st->scanItem;
+    StackElement *current = app->scanItem;
     
     while (current)
     {
@@ -1074,7 +1063,7 @@ void check_virus_detected(st_widgets *st)
                 return;
             }
             
-            add_virus_elements(st, virusDetection, virus);
+            add_virus_elements(app, virusDetection, virus);
             virusDetection++;
         }
         current = current->next;
@@ -1087,5 +1076,55 @@ void check_virus_detected(st_widgets *st)
     }
     
     /* Mise à jour de la page du notebook en fonction de cmd_status */
-    gtk_notebook_set_current_page(GTK_NOTEBOOK(st->notebook), (st->cmd_satus == 1) ? 1 : 3);
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(app->notebook), (app->cmd_satus == 1) ? 1 : 3);
+}
+
+gboolean getDataValue(char **out_version, gchar **out_db, char **out_date)
+{
+    if (!out_version || !out_db || !out_date)
+    {
+        return FALSE;
+    }
+
+    char *buffer = getClamscanVersion();
+    if (!buffer)
+    {
+        return FALSE;
+    }
+
+    printf("%s\n", buffer);
+
+    *out_version = extract_version(buffer);
+    *out_db = extract_db_version(buffer);
+    *out_date = extract_date(buffer);
+
+    free(buffer);
+
+    if (*out_version && *out_db && *out_date)
+    {
+        return TRUE;
+    }
+    
+    return FALSE;
+}
+
+void cleanDataValue(char **version, gchar **db, char **date)
+{
+    if (version && *version)
+    {
+        free(*version);
+        *version = NULL;
+    }
+
+    if (db && *db)
+    {
+        g_free(*db);
+        *db = NULL;
+    }
+
+    if (date && *date)
+    {
+        free(*date);
+        *date = NULL;
+    }
 }

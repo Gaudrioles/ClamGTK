@@ -4,18 +4,18 @@
 #include <glib.h>
 
 #include "stack.h"
-#include "main.h"
+#include "../common.h"
 
 /*-----------------------------------------------------------------*/
 
-Stack new_stack(void)
+StackElement *new_stack(void)
 {
     return NULL;
 }
 
 /*-----------------------------------------------------------------*/
 
-gboolean is_empty_stack(Stack st)
+gboolean is_empty_stack(StackElement *st)
 {
 	if(!st)
 	{
@@ -28,7 +28,7 @@ gboolean is_empty_stack(Stack st)
 
 /*-----------------------------------------------------------------*/
 
-Stack push_stack(Stack st, gchar *fileName, char *filePath, char *virusName, gboolean isClean)
+StackElement *push_stack(StackElement *st, gchar *fileName, char *filePath, char *virusName, gboolean isClean)
 {
     if (!fileName || !filePath)
     {
@@ -78,7 +78,7 @@ Stack push_stack(Stack st, gchar *fileName, char *filePath, char *virusName, gbo
 
 /*-----------------------------------------------------------------*/
 
-Stack pop_stack(Stack st)
+StackElement *pop_stack(StackElement *st)
 {
     if (is_empty_stack(st))
     {
@@ -98,7 +98,7 @@ Stack pop_stack(Stack st)
 
 /*-----------------------------------------------------------------*/
 
-Stack clear_stack(Stack st)
+StackElement *clear_stack(StackElement *st)
 {
     while (!is_empty_stack(st))
     {
@@ -110,7 +110,7 @@ Stack clear_stack(Stack st)
 
 /*-----------------------------------------------------------------*/
 
-void print_stack(Stack st)
+void print_stack(StackElement *st)
 {
     StackElement *current = st;
 	
