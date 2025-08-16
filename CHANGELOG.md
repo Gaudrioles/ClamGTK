@@ -20,3 +20,5 @@ BUILD 1.6
 -*- Add -*- Ajout clamav_icon.png;
 BUILD 1.7
 -*- Add -*- Remplacement du theme par libhandy;
+BUILD 1.8
+-*- Add -*- Mise à jour du fichier CMakeLists.txt;

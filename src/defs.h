@@ -11,6 +11,7 @@
 #define MSG_EMPTY       "\n----------- Aucun élément à analyser -----------\n"
 #define MSG_UPDATE      "\n\n----------- Mise à jours -----------\n\n"
 #define MSG_UPDATE_F    "\n\n----------- Mise à jours Terminée -----------\n\n"
+#define MSG_UPDATE_A    "\n\n----------- Mise à jours Annulée -----------\n\n"
 #define MSG_VIRUS       "Fichier dangereux identifié\nsupprimer ou conserver ?\n"
 #define MSG_RUN         "zenity --warning --title \"ClamGTK\" --width 200 --height 100 --text \"ClamGTK already running\""
 
@@ -19,7 +20,7 @@
 
 #define CLAMGTK_APP     "ClamGTK.app"
 
-#define CMD_FRESHCLAN   "pkexec clamgtk_update"
+#define CMD_FRESHCLAN   "pkexec clamgtk_update 2>&1"
 #define CMD_DEL         "pkexec rm"
 
 #define UI_ANALYSE      "Analyse"

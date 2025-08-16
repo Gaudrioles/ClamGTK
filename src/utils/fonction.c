@@ -557,12 +557,12 @@ void *worker_update(void *user_data)
 {
     int regexSelect = -1;
     Application *app = (Application *)user_data;
-    
+
     /* Process Update */
     FILE *fichier = popen(CMD_FRESHCLAN, "r");
     if (!fichier)
     {
-        add_text_textview(app->textBuffer, "Erreur lors de l'exécution de freshclam !", 0);
+        add_text_textview(app->textBuffer, "Erreur lors de l'exécution de freshclam", 3);
         return NULL;
     }
 
@@ -596,10 +596,17 @@ void *worker_update(void *user_data)
     }
 
     /* Fermer le processus */
-    pclose(fichier);
+    int exit_code = pclose(fichier);
 
     /* Affichage du message */
-    add_text_textview(app->textBuffer, MSG_UPDATE_F, 0);
+    if (exit_code == 0) /* Succes */
+    {
+        add_text_textview(app->textBuffer, MSG_UPDATE_F, 0);
+    }
+    else /*  Processus interrompu */
+    {
+        add_text_textview(app->textBuffer, MSG_UPDATE_A, 2);
+    }
 
     /* Cleanup */
     CleanupThread(&app->thread_Pulse_ID);
