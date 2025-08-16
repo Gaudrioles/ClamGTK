@@ -22,3 +22,7 @@ cd build
 cmake ..
 make package
 ```
+### Linux Mint Cinnamon 
+```
+cp  /usr/share/ClamGTK/clamgtk.nemo_action ~/.local/share/nemo/actions/clamgtk.nemo_action
+```

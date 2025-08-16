@@ -15,7 +15,7 @@ package() {
 	# Install Bin
 	install -D -m755 "../ClamGTK" "${pkgdir}/usr/bin/ClamGTK"
 	install -D -m755 "../clamgtk_update" "${pkgdir}/usr/bin/clamgtk_update"
-	install -D -m755 "../../tool/clamgtk_update" "${pkgdir}/usr/bin/clamgtk_update"
 	install -D -m755 "../../DATA/clamav.svg" "${pkgdir}/usr/share/ClamGTK/clamav.svg"
+	install -D -m755 "../../DATA/clamgtk.nemo_action" "${pkgdir}/usr/share/ClamGTK/clamgtk.nemo_action"
 	install -D -m755 "../../DATA/clamgtk.desktop" "${pkgdir}/usr/share/applications/clamgtk.desktop"
 }
