@@ -175,9 +175,20 @@ static gboolean display_scanItem(DispatchDataVirus *data)
     /* Get iter position */
     gtk_text_buffer_get_end_iter(data->buffer, &end);
 
-    /* Truncation +30 */
-    char filename_trunc[31] = {0};
-    g_strlcpy(filename_trunc, data->scanItem->item.fileName, sizeof(filename_trunc));
+    /* Truncation +20 */
+    char filename_trunc[21] = {0};
+    const char *src = data->scanItem->item.fileName;
+    size_t max_len = sizeof(filename_trunc) - 1;
+
+    if (strlen(src) > max_len) /* Si troncation + ... */
+    {
+        g_strlcpy(filename_trunc, src, max_len - 2);
+        strcat(filename_trunc, "...");
+    }
+    else /* Pas de troncation */
+    {
+        g_strlcpy(filename_trunc, src, sizeof(filename_trunc));
+    }
 
     /* Markup */
     if (data->scanItem->item.isClean)
