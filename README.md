@@ -1,7 +1,8 @@
 # ClamGTK
 
 Interface graphique pour ClamAV en Gtk3
-![Capture d'écran.](https://github.com/Gaudrioles/ClamGTK/tree/master/DATA/screenshot.png)
+
+![Capture d'écran](DATA/screenshot.png)
 
 ## Installation - Build From Source
 
