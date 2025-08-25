@@ -1,0 +1,9 @@
+[Nemo Action]
+Name=Analyser avec ClamGTK Antivirus
+Comment=Analyser les virus
+Exec=ClamGTK -scan %F
+Icon-Name=clamtk
+Selection=any
+Extensions=any;
+EscapeSpaces=true
+Dependencies=zenity;
