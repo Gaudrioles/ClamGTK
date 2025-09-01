@@ -302,7 +302,6 @@ void activate(GtkApplication *application, Application *app)
     gtk_box_pack_end(GTK_BOX(box_main), app->notebook, TRUE, TRUE, 0);
 
     /* Signal */
-    g_signal_connect(G_OBJECT(app->window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
     g_signal_connect(G_OBJECT(app->bouton_retour), "clicked", G_CALLBACK(notebook_set_page_default), app);
     g_signal_connect(G_OBJECT(app->bouton_analyser), "clicked", G_CALLBACK(notebook_set_page_analyser), app);
     g_signal_connect(G_OBJECT(app->bouton_update), "clicked", G_CALLBACK(update_function), app);
@@ -310,6 +309,4 @@ void activate(GtkApplication *application, Application *app)
     g_signal_connect(G_OBJECT(app->bouton_folder), "clicked", G_CALLBACK(selection_folder_function), app);
     
     gtk_widget_show_all(app->window);
-
-    gtk_main();
 }
